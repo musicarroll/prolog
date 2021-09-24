@@ -1,9 +1,13 @@
 :-module('listpreds',
         [
+		delete_head/2,
         write_list_vert/1,
 		write_set_hor/1
         ]).
- 
+
+delete_head([],[]).
+delete_head([_|T],T).
+
 write_list_wo_commas([]).
 write_list_wo_commas([H|T]):-
              write(H), write(' '),

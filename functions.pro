@@ -2,7 +2,6 @@
         [
 		has_subset/2,
 		is_subset/2,
-		delete_head/2,
 		powerset/2,
 		relation/3,
         pair_list/1,
@@ -18,7 +17,6 @@
 		gen_choice_func/3,
         eval/3,
         cartesian/2,
-        gen_binop/2,
         cartesian/3,
         cartesian3/4,
 		cartesian3/2,
@@ -48,8 +46,6 @@ is_subset([E|Tail], [E|NTail]):-
 is_subset([_|Tail], NTail):-
   is_subset(Tail, NTail).
 
-delete_head([],[]).
-delete_head([_|T],T).
 
 powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
 

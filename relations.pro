@@ -1,6 +1,8 @@
 :-use_module('functions.pro').
 :-use_module(library(uuid)).
 :-use_module('graphext.pro').
+:-use_module('binops.pro').
+:-use_module('listpreds.pro').
 
 r(X,Y) :- member([X,Y],[[a,b],[a,c],[b,c],[c,d],[d,d]]).
 s(X,Y) :- member([X,Y],[[a,a],[b,c],[b,d]]).
