@@ -10,9 +10,14 @@
 		has_inverses/3,
         non_commute_binop/1,
         left_mults/3,
+        binop_equiv_class/3,
+        binop_equiv_classes/2,
 		write_op_table/1,
+        binop_equiv/3,
         klein4/1,
-        sym3/1
+        sym3/1,
+        dih4/1,
+        z3/1
         ]).
 
 :-use_module(library(random)).
@@ -38,7 +43,7 @@ is_assoc_binop(BinOp,A) :- cartesian3(A,A,A, Cart3),
 			
 non_assoc_binop(BinOp):-
              domain(BinOp,D),
-             flatten(D,A),
+             flatten(D,L), list_to_set(L,A),
              cartesian3(A,A,A,Cart),
              member([X,Y,Z],Cart),
              eval(BinOp,[X,Y],X1),
@@ -84,6 +89,9 @@ left_mults(X,Bop,Mults):-
              binop_domain(Bop,Dom),
              findall(Z,(member(Y,Dom),eval(Bop,[X,Y],Z)),Mults).
 
+%left_mult_onto(BinOp):- domain(BinOp,Dom), range(BinOp,Rng),
+%                        forall
+
 write_op_table(Bop):- nonvar(Bop),
              binop_domain(Bop,Dom),
              write('   '), write_list_wo_commas(Dom),nl,
@@ -94,8 +102,16 @@ write_op_table(Bop):- nonvar(Bop),
 					forall(member(Y,Dom),(eval(Bop,[X,Y],Z),!,write(Z),write(' '))),
 					nl)
 				).
+binop_equiv(BinOp,[X1,Y1],[X2,Y2]) :- eval(BinOp,[X1,Y1],Result), eval(BinOp,[X2,Y2],Result).
 
- 
+binop_equiv_class(BinOp,[X,Y],Class) :- domain(BinOp,Dom),member([X,Y],Dom),
+                                        findall(Result,binop_equiv(BinOp,[X,Y],Result),L), list_to_set(L,Class).
+
+binop_equiv_classes(BinOp,EquivClasses) :- findall(Class, 
+                                            (domain(BinOp,Dom),member([X,Y],Dom),
+                                            findall(Result,binop_equiv(BinOp,[X,Y],Result),L), 
+                                                list_to_set(L,Class)),Tmp), list_to_set(Tmp, EquivClasses).
+
 klein4(V) :- V=[[[e,e],e],[[e,a],a],[[e,b],b],[[e,c],c],
                 [[a,e],a],[[a,a],e],[[a,b],c],[[a,c],b],
                 [[b,e],b],[[b,a],c],[[b,b],e],[[b,c],a],
@@ -117,3 +133,8 @@ dih4(D4) :- D4=[[[e,e],e],        [[e,b],b],     [[e,a],a],     [[e,'a^2'],'a^2'
                 [['a^2b',e],'a^2b'],[['a^2b',x],x],[['a^2b',x],x],[['a^2b',x],x],[['a^2b',x],x],[['a^2b',x],x],[['a^2b',x],x],[['a^2b',x],x],
                 [['a^3b',e],'a^b'],[['a^3b',x],x],[['a^3b',x],x],[['a^3b',x],x],[['a^3b',x],x],[['a^3b',x],x],[['a^3b',x],x],[['a^3b',x],x]
                 ].
+z3(Z3):- Z3=[ 
+                [[0,0],0], [[0,1],1], [[0,2],2],
+                [[1,0],1], [[1,1],2], [[1,2],0],
+                [[2,0],2], [[2,1],0], [[2,2],1]
+            ].

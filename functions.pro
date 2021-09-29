@@ -4,7 +4,6 @@
 		is_subset/2,
 		powerset/2,
 		relation/3,
-        pair_list/1,
         domain/2,
         range/2,
         image/3,
@@ -58,12 +57,7 @@ collection_of_nonempty_sets(C,X) :- is_set(X), \+X=[],
 
 relation(Dom,Rng,R) :- cartesian(Dom,Rng,Cart), powerset(Cart,P), member(R,P).
  
-% Determines if a list is a list or ordered pairs.  The following grows without bound:
-pair_list([]).
-pair_list([[X,Y]|T]) :-
-			 nonvar(X), nonvar(Y),
-             pair_list(T).
- 
+
  
 % As a list of pairs is a relation, this predicate produces the domain of
 % that relation:  Note the definition of pair_list requires PL to be instantiated.
@@ -115,7 +109,6 @@ gen_func([H|T],Rng,Func1,Func) :-
 gen_all_funcs(Dom,Rng,Funcs) :- findall(F,gen_func(Dom,Rng,F),L), list_to_set(L,Funcs).			 
 
 choose_val(A,V):-member(V,A).
-make_pair(A,V,[A,V]).
 
 gen_choice_func(X,C,F) :- collection_of_nonempty_sets(C,X), 
 		Dom=C,
