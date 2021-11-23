@@ -1,6 +1,7 @@
 :-module('functions',
         [
 		has_subset/2,
+        has_subset_of_size/3,
 		is_subset/2,
 		powerset/2,
 		relation/3,
@@ -36,10 +37,11 @@
 has_subset(_, []).
 has_subset([X|L], [A|NTail]):-
     member(A,[X|L]),    
-    has_subset(L, NTail),
+    has_subset(L, NTailtmp),
+    sort(NTailtmp,NTail),
     not(member(A, NTail)).
 
-is_subset([], []).
+is_subset([], A) :- is_set(A).
 is_subset([E|Tail], [E|NTail]):-
   is_subset(Tail, NTail).
 is_subset([_|Tail], NTail):-
@@ -47,6 +49,14 @@ is_subset([_|Tail], NTail):-
 
 
 powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
+
+% Seems to produce duplicate subsets:
+%has_subset_of_size(A,S,N) :- ground(A), ground(N),has_subset(A,Stmp),sort(Stmp,S), length(S,N).
+
+% Works but very inefficient.
+has_subset_of_size(A,S,N) :- ground(A), ground(N), powerset(A,P), 
+                            findall(Stmp,(member(Stmp,P),length(Stmp,N)),L), 
+                            list_to_set(L,SoS), !, member(S,SoS).
 
 collection_of_nonempty_sets(C,X) :- is_set(X), \+X=[], 
 	powerset(X,P), !, 

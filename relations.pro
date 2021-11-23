@@ -147,6 +147,13 @@ union_collection(Collection,Union) :- union_collection(Collection,[],Union).
 union_collection([],Union1,Union):- list_to_set(Union1,Union).
 union_collection([H|T],ThusFar,Union) :- union(H,ThusFar,Next),
 										union_collection(T,Next,Union).
+disjoint(A,B) :- intersection(A,B,[]).
+disjoint_from_collection(A,Collection) :- subtract(Collection,[A],C),
+			forall(member(X,C),disjoint(X,A)).
+disjoint_collection(C) :- forall(member(X,C),disjoint_from_collection(X,C)).
+
+set_equal(A,B) :- forall(member(X,A),member(X,B)), forall(member(Y,B),member(Y,A)).
+partition(C,A) :- disjoint_collection(C), union_collection(C,B), set_equal(A,B).
 
 binop_range_to_ugraph_component(BinOp,Z,U) :- range(BinOp,Rng), member(Z,Rng),
 									findall(Pairs,(member([Pairs,Z],BinOp)),Vs),
