@@ -2,6 +2,7 @@
         [
         gen_binop/2,
 		binop12/2,
+        gen_assoc_binop/2,
         non_assoc_binop/1,
 		assoc_binop_for/4,
         is_assoc_triple_for/2,
@@ -45,7 +46,9 @@ is_assoc_triple_for([X,Y,Z],BinOp) :- assoc_binop_for(BinOp,X,Y,Z).
 			
 is_assoc_binop(BinOp,A) :- cartesian3(A,A,A, Cart3),
 			forall(member([X,Y,Z],Cart3),assoc_binop_for(BinOp,X,Y,Z)).
-			
+
+gen_assoc_binop(A,BinOp) :- gen_binop(A,BinOp), is_assoc_binop(BinOp,A).
+
 non_assoc_binop(BinOp):-
              domain(BinOp,D),
              flatten(D,L), list_to_set(L,A),
