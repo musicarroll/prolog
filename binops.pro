@@ -4,6 +4,7 @@
 		binop12/2,
         non_assoc_binop/1,
 		assoc_binop_for/4,
+        is_assoc_triple_for/2,
 		is_assoc_binop/2,
         has_identity/2,
 		has_inverse_for/4,
@@ -38,6 +39,9 @@ assoc_binop_for(BinOp,X,Y,Z) :- eval(BinOp,[X,Y],Left),
 			eval(BinOp,[Left,Z],Result),
 			eval(BinOp,[Y,Z],Right),
 			eval(BinOp,[X,Right],Result).
+
+is_assoc_triple_for([X,X,X],BinOp) :- domain(BinOp,D), member([X,X],D).
+is_assoc_triple_for([X,Y,Z],BinOp) :- assoc_binop_for(BinOp,X,Y,Z).
 			
 is_assoc_binop(BinOp,A) :- cartesian3(A,A,A, Cart3),
 			forall(member([X,Y,Z],Cart3),assoc_binop_for(BinOp,X,Y,Z)).
