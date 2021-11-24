@@ -41,9 +41,14 @@ assoc_binop_for(BinOp,X,Y,Z) :- eval(BinOp,[X,Y],Left),
 			eval(BinOp,[Y,Z],Right),
 			eval(BinOp,[X,Right],Result).
 
+% Assumes BinOp is given:
 is_assoc_triple_for([X,X,X],BinOp) :- domain(BinOp,D), member([X,X],D).
 is_assoc_triple_for([X,Y,Z],BinOp) :- assoc_binop_for(BinOp,X,Y,Z).
-			
+
+% Generate minimal binop elements to ensure that [X,Y,Z] is an associative
+% triple:
+% is_assoc_triple_on([X,Y,Z],A,BinOp1,BinOp2) :- cartesian3(A,A,A,Cart3),
+%            member([[X,Y],L],BinOp1)
 is_assoc_binop(BinOp,A) :- cartesian3(A,A,A, Cart3),
 			forall(member([X,Y,Z],Cart3),assoc_binop_for(BinOp,X,Y,Z)).
 

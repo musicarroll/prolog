@@ -6,6 +6,7 @@
         pair_list/1,
         write_list_vert/1,
 		write_set_hor/1,
+        write_set_latex/1,
         lol_lengths/2,
         equilenth_lol/1
         ]).
@@ -28,6 +29,11 @@ write_list_vert([H|T]):-
 write_set_hor(S) :- write('{'), write_set_hor(S,S).
 write_set_hor(_,[X]) :- write(X), write('}'), !.
 write_set_hor(S,[H|T]) :- write(H),write(','), write_set_hor(S,T).
+
+write_set_latex(S) :- write('\\set{'), write_set_latex(S,S).
+write_set_latex(_,[X]) :- write(X), write('}'), !.
+write_set_latex(S,[H|T]) :- write(H),write(','), write_set_latex(S,T).
+
 
 % Determines if a list is a list or ordered pairs.  The following grows without bound:
 pair_list([]).
