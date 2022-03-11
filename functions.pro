@@ -12,10 +12,13 @@
         function/1,
         gen_func/2,
         gen_func/3,
+        gen_bijection/2,
 		gen_all_funcs/3,
 		choose_val/2,
 		gen_choice_func/3,
         eval/3,
+        eval_on_set/3,
+        gen_automorph_rel/3,
         cartesian/2,
         cartesian/3,
         cartesian3/4,
@@ -80,7 +83,7 @@ domain(PL,Dom) :-
 range(PL, Rng) :-
 			 pair_list(PL),
              findall(Y,member([_,Y],PL),L),
-             list_to_set(L,Rng).
+             list_to_set(L,Rng),!.
  
 range_list(PL, RngList):-
              pair_list(PL),
@@ -118,6 +121,13 @@ gen_func([H|T],Rng,Func1,Func) :-
 			 
 gen_all_funcs(Dom,Rng,Funcs) :- findall(F,gen_func(Dom,Rng,F),L), list_to_set(L,Funcs).			 
 
+gen_bijection(DomRng,F) :-
+    gen_func(DomRng,F), 
+    range(F,R), 
+    length(R,S1), 
+    length(DomRng,S2),
+    S1=:=S2.
+
 choose_val(A,V):-member(V,A).
 
 gen_choice_func(X,C,F) :- collection_of_nonempty_sets(C,X), 
@@ -130,7 +140,26 @@ gen_choice_func(X,C,F) :- collection_of_nonempty_sets(C,X),
 eval(F,X,Y) :- nonvar(F), nonvar(X),
              function(F),
              member([X,Y],F).
- 
+eval_on_set(F,S1,S2) :-
+    findall(Y,(member(X,S1),eval(F,X,Y)),L), list_to_set(L,S2).
+
+eval_on_pair(F,[X,Y],[RX,RY]):- eval(F,X,RX), eval(F,Y,RY).
+
+gen_automorph_rel([X0,Y0],F,R) :- gen_automorph_rel([X0,Y0],[],F,[],R).
+
+gen_automorph_rel([X0,Y0],[X0,Y0],_,R,R):-!.
+gen_automorph_rel([X0,Y0],Pair,F,Rinc,R) :- 
+    (
+     Pair=[]-> eval_on_pair(F,[X0,Y0],[FX,FY])
+    ;
+     Pair=[X,Y],
+     eval_on_pair(F,[X,Y],[FX,FY])
+     ),
+    Rnew = [[FX,FY]|Rinc],
+    list_to_set(Rnew,Snew),
+    gen_automorph_rel([X0,Y0],[FX,FY],F,Snew,R).
+
+
 cartesian(A,B,Cart):-
              findall([X,Y],(member(X,A),member(Y,B)),L),
              list_to_set(L,Cart),!.
