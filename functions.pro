@@ -18,6 +18,7 @@
 		gen_choice_func/3,
         eval/3,
         eval_on_set/3,
+        make_pair_func/2,
         gen_automorph_rel/3,
         cartesian/2,
         cartesian/3,
@@ -144,6 +145,10 @@ eval_on_set(F,S1,S2) :-
     findall(Y,(member(X,S1),eval(F,X,Y)),L), list_to_set(L,S2).
 
 eval_on_pair(F,[X,Y],[RX,RY]):- eval(F,X,RX), eval(F,Y,RY).
+
+make_pair_func(F,Pair_Func) :- domain(F,D),cartesian(D,C), 
+    findall([[X,Y],[FX,FY]],(member([X,Y],C),eval(F,X,FX),eval(F,Y,FY)),L),
+    list_to_set(L,Pair_Func).
 
 gen_automorph_rel([X0,Y0],F,R) :- gen_automorph_rel([X0,Y0],[],F,[],R).
 
