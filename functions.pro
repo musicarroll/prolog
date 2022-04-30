@@ -21,6 +21,9 @@
         make_pair_func/2,
         gen_automorph_rel/3,
         full_automorph_rel/3,
+        full_automorph_from_sset_vset/4,
+        is_automorph_of/2,
+        all_automorphs_of/3,
         cartesian/2,
         cartesian/3,
         cartesian3/4,
@@ -29,7 +32,8 @@
         subst_value/3,
         subst_value_list/3,
         range_list/2,
-		collection_of_nonempty_sets/2
+		collection_of_nonempty_sets/2,
+        test1/4
         ]).
  
 :-use_module(library(random)).
@@ -123,9 +127,6 @@ gen_func([H|T],Rng,Func1,Func) :-
 			 
 gen_all_funcs(Dom,Rng,Funcs) :- findall(F,gen_func(Dom,Rng,F),L), list_to_set(L,Funcs).			 
 
-gen_bijection(DomRng,F) :-
-    permutation(DomRng,Rng), 
-    make_pair_list(DomRng,Rng,F).
 
 choose_val(A,V):-member(V,A).
 
@@ -147,9 +148,19 @@ make_pair_func(F,Pair_Func) :- domain(F,D),cartesian(D,C),
     findall([[X,Y],[FX,FY]],(member([X,Y],C),eval(F,X,FX),eval(F,Y,FY)),L),
     list_to_set(L,Pair_Func), !.
 
+gen_bijection(DomRng,F) :-
+    permutation(DomRng,Rng), 
+    make_pair_list(DomRng,Rng,F).
+
+is_automorph_of(F,R):- forall(member([X,Y],R),
+                        (eval_on_pair(F,[X,Y],[FX,FY]),member([FX,FY],R))).
+all_automorphs_of(R,SuperDom,Autos):- 
+                findall(G,(gen_bijection(SuperDom,G),is_automorph_of(G,R)),L),
+                list_to_set(L,Autos).
+
 gen_automorph_rel([X0,Y0],F,R) :- gen_automorph_rel([X0,Y0],[],F,[],R).
 
-gen_automorph_rel([X0,Y0],[X0,Y0],_,R,R):-!.
+gen_automorph_rel([X0,Y0],[X0,Y0],_,R,R).
 gen_automorph_rel([X0,Y0],Pair,F,Rinc,R) :- 
     (
      Pair=[]-> eval_on_pair(F,[X0,Y0],[FX,FY])
@@ -163,13 +174,15 @@ gen_automorph_rel([X0,Y0],Pair,F,Rinc,R) :-
 
 full_automorph_rel(SeedSet,F,Rel):-
     make_pair_func(F,PF),
-    full_automorph_rel(SeedSet,PF,SeedSet,Rel).
+    full_automorph_rel(SeedSet,PF,SeedSet,[],Rel).
 
-full_automorph_rel(_,F,Rel,Rel) :- eval_on_set(F,Rel,Rel),!.
-full_automorph_rel(SeedSet,PF,LastSet,Rel):-
+full_automorph_rel(_,_,Rel,Rel,Rel):-!.
+full_automorph_rel(SeedSet,PF,LastSet,NewSet,Rel):-
     eval_on_set(PF,LastSet,Temp),
-    list_to_set(Temp,NewSet), NewSet \= LastSet,
-    full_automorph_rel(SeedSet,PF,NewSet,Rel).
+    list_to_set(Temp,NewSetTmp), 
+    union(LastSet,NewSetTmp,Union),
+    union(NewSet,Union,NextNewSet),
+    full_automorph_rel(SeedSet,PF,NewSet,NextNewSet,Rel).
 
 cartesian(A,B,Cart):-
              findall([X,Y],(member(X,A),member(Y,B)),L),
@@ -189,3 +202,18 @@ subst_value(Z,[X,_],[X,Z]).
 subst_value_list([],List,List).
 subst_value_list([H|T],[[H1,_]|T1],[[H1,H]|T2]):-
              subst_value_list(T,T1,T2).
+
+full_automorph_from_sset_vset(SeedSet,VertexSet,Bijection,FullRelation):- 
+    gen_bijection(VertexSet,Bijection), 
+    full_automorph_rel(SeedSet,Bijection,FullRelation).
+
+% Experiments:
+test1(SeedSet,VertexSet,Bijection,FullRelation):-
+    full_automorph_from_sset_vset(SeedSet,VertexSet,Bijection,FullRelation), 
+    nl,nl,write('*****'), nl, 
+    write('Seed Set: '),write(SeedSet),nl,
+    write('Vertex Set: '),
+    write(VertexSet),nl,
+    write('Bijection: '),
+    write(Bijection),nl,
+    write('Full Relation: '),write(FullRelation),nl,nl.

@@ -8,7 +8,8 @@
 		write_set_hor/1,
         write_set_latex/1,
         lol_lengths/2,
-        equilenth_lol/1
+        equilenth_lol/1,
+        blank_unless/3
         ]).
 
 delete_head([],[]).
@@ -48,3 +49,10 @@ make_pair_list(L1,L2,PairList):- length(L1,M),length(L2,M),
 
 lol_lengths(LoL,LoL_lengths) :- maplist(length,LoL,LoL_lengths).
 equilenth_lol(LoL) :- lol_lengths(LoL,LoL_lengths), list_to_set(LoL_lengths,S), length(S,1).
+
+blank_unless(Var,OldList,NewList):-blank_unless(Var,1,OldList,[],NewList).
+blank_unless(_,_,[],NewList,NewList).
+blank_unless(Var,Inc,[Var|T],Tmp,NewList) :- append([Var],Tmp,NewTmp),
+                                        blank_unless(Var,Inc,T,NewTmp,NewList).
+blank_unless(Var,Inc,[Var1|T],Tmp,NewList) :- \+Var=Var1, NewInc is Inc+1, append([NewInc],Tmp,NewTmp),
+                                        blank_unless(Var,NewInc,T,NewTmp,NewList).

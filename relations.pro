@@ -40,10 +40,13 @@ sections(R,Sections) :- relation_set(R,Set), domain(Set,D), findall(Section,(mem
 % Predicates for writing graphs (graphviz)
 
 % open / close / headers / footers
-open_dot_file(Filename, Fd) :- open(Filename, write, Fd), 
+open_dot_file(Filename, Fd, Label) :- open(Filename, write, Fd), 
 	write(Fd, 'digraph G {\n'),
-%	write(Fd, 'size =\"10,10\";\n'),
-	write(Fd, 'layout=circo;\n').
+	write(Fd,'label=\"'),write(Fd,Label), write(Fd,'\";\n'),
+	write(Fd, 'layout=circo;\n'),
+	write(Fd, 'rankdir=LR;\n'),
+	write(Fd, 'orientation=landscape;\n'),
+	write(Fd, 'size =\"10,8\";\n').
 
 close_dot_file(Fd) :- write(Fd,'}\n'), close(Fd).
 
@@ -65,7 +68,7 @@ write_ternary_dot_pair([X,Y],Dom,Rng,Fd) :-
 write_ternary_dot_pairs(Pairs, Fd) :- domain(Pairs,Dom), range(Pairs,Rng),
 		forall(member([X,Y],Pairs),write_ternary_dot_pair([X,Y],Dom,Rng, Fd)).
 
-gen_tern_dot(Rel,Filename) :- open_dot_file(Filename,Fd), 
+gen_tern_dot(Rel,Filename) :- open_dot_file(Filename,Fd,' '), 
 							write_ternary_dot_pairs(Rel,Fd), 
 							close_dot_file(Fd).
 
@@ -80,7 +83,9 @@ write_latex_triple_set([H|T],0) :- write('\\set{'), write_latex_triple(H),
 write_latex_triple_set([H|T],1) :-	write_latex_triple(H), 
 								(T=[]->write('}');write(','),write_latex_triple_set(T,1)).	
 								
-gen_dot_filename(Filename) :- get_time(TS), stamp_date_time(TS,Date,local), 
+gen_dot_filename(Filename) :- gen_filename('.dot',Filename).
+
+gen_filename(Ext, Filename) :- get_time(TS), stamp_date_time(TS,Date,local), 
 							date_time_value(year,Date,Y),	write(Y),nl,						
 							date_time_value(month,Date,M),	write(M),nl,
 							date_time_value(day,Date,D),	write(D),nl,
@@ -90,8 +95,8 @@ gen_dot_filename(Filename) :- get_time(TS), stamp_date_time(TS,Date,local),
 							Secs is floor(S*100),
 							atomics_to_string([Y,M,D,H,Min,Secs],'-',Fileprefix),
 							atom_string(Atom,Fileprefix),
-							atom_concat(Atom,'.dot',Filename).
-							
+							atom_concat(Atom,Ext,Filename).
+
 gen_rand_graph(BaseSet,M, RandSub) :-  A=BaseSet,
 							cartesian(A,A,Dom), 
 							cartesian(Dom,A,Set), 
@@ -104,7 +109,7 @@ gen_rand_pair_graph(BaseSet,M, RandSub) :-	cartesian(BaseSet,BaseSet,PairSet),
 									rand_sub(PairGraph,M, RandSub).
 
 make_dot_file(GraphPairs) :- gen_dot_filename(F), 
-							open_dot_file(F,Fd),  
+							open_dot_file(F,Fd,' '),  
 							write_dot_pairs(GraphPairs,Fd),
 							close_dot_file(Fd).
 
@@ -125,22 +130,49 @@ write_dot_pair([X,Y],Fd) :- uuid(Xlabel,[format(integer)]),uuid(Ylabel,[format(i
 
 write_dot_pairs(Pairs,Fd) :- forall(member([X,Y],Pairs),write_dot_pair([X,Y],Fd)).
 list_to_atom([X,Y],Atom) :- atomic_list_concat(['[',X,',',Y,']'],Atom).
-vertex_pair_to_label_string([V,UUID],Label) :- \+is_list(V), 
-												atomic_list_concat([UUID,' [label=\"',V,'\"]\n'],Label).
-vertex_pair_to_label_string([V,UUID],Label) :- is_list(V), list_to_atom(V,Vatom),
-												atomic_list_concat([UUID,' [label=\"',Vatom,'\"]\n'],Label).
 edge_to_dot(X-Y,VPairs,DotEdge) :- member([X,Xuid],VPairs), member([Y,Yuid],VPairs), 
 									atomic_list_concat([Xuid,'->',Yuid,';\n'],DotEdge).
-ugraph_to_dot(U) :- gen_dot_filename(F), 
-					open_dot_file(F,Fd),  
+
+ugraph_to_dot(U,Label) :- gen_dot_filename(F), 
+					open_dot_file(F,Fd, Label),  
 					vertices(U,Vs),
 					make_vertex_uuid_pairs(Vs,VPairs),
 					maplist(vertex_pair_to_label_string,VPairs,LPairs),
 					findall(X,(member(X,LPairs),write(Fd,X)),_),
 					edges(U,Es),
-					findall(DotEdge, (member(Edge,Es),edge_to_dot(Edge,VPairs,DotEdge),write(Fd,DotEdge)),_),
+					findall(DotEdge, 
+						(member(Edge,Es),edge_to_dot(Edge,VPairs,DotEdge),write(Fd,DotEdge)),
+						_),
 					close_dot_file(Fd).
 
+ugraph_to_dot(U,Label,Nonblank,F) :- gen_dot_filename(F), 
+					open_dot_file(F,Fd, Label),  
+					vertices(U,Vs),
+					make_vertex_uuid_pairs(Vs,VPairs),
+					findall(L,
+						(member(VPair,VPairs),vertex_pair_to_label_string(Nonblank,VPair,L)),LPairs),
+					findall(X,(member(X,LPairs),write(Fd,X)),_),
+					edges(U,Es),
+					findall(DotEdge, 
+						(member(Edge,Es),edge_to_dot(Edge,VPairs,DotEdge),write(Fd,DotEdge)),
+						_),
+					close_dot_file(Fd),
+					open('dotbatch', append, Batch),
+					atomic_list_concat(['/usr/bin/dot -Tjpg ',F,' -O\n'],Cmd),
+					write(Batch,Cmd),
+					close(Batch),
+					shell('chmod +x dotbatch'),
+					!.
+
+vertex_pair_to_label_string([V,UUID],Label) :- \+is_list(V), 
+								atomic_list_concat([UUID,' [label=\"',V,'\"]\n'],Label).
+vertex_pair_to_label_string([V,UUID],Label) :- is_list(V), list_to_atom(V,Vatom),
+								atomic_list_concat([UUID,' [label=\"',Vatom,'\"]\n'],Label).
+
+vertex_pair_to_label_string(Nonblank,[V,UUID],Label) :- \+is_list(V), \+V=Nonblank, 
+								atomic_list_concat([UUID,' [label=\"',' ','\"]\n'],Label).
+vertex_pair_to_label_string(V,[V,UUID],Label) :- \+is_list(V), 
+								atomic_list_concat([UUID,' [label=\"',V,'\"]\n'],Label).
 
 % Should go into extension of set manipulation library:
 union_collection(Collection,Union) :- union_collection(Collection,[],Union).

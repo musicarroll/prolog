@@ -6,7 +6,10 @@
 			make_all_verts_reflexive/2,
 			reflexive_closure/2,
 			pair_to_edge/2,
-			pairs_to_edges/2]).
+			pairs_to_edges/2,
+			union_of_ugraphs/3
+			]
+		).
 
 commute_edge(X-Y,Y-X).
 commute_all_edges(Edges,NewEdges,UnionOfEdges) :- maplist(commute_edge,Edges,NewEdges), 
@@ -22,3 +25,7 @@ reflexive_closure(G,H) :- vertices(G,Vs), make_all_verts_reflexive(Vs,RefEdges),
 
 pair_to_edge([X,Y],X-Y).
 pairs_to_edges(Pairs,Edges) :- maplist(pair_to_edge,Pairs,Edges).
+
+union_of_ugraphs(Ugraph,[],Ugraph).
+union_of_ugraphs(Ugraph,[H|T],Ugraphs):-union(Ugraph,H,Tmp),
+										union_of_ugraphs(Tmp,T,Ugraphs).
