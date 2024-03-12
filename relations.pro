@@ -37,6 +37,7 @@ s_suppes_set(Set) :- findall([X,Y],s_suppes(X,Y),L), list_to_set(L,Set).
 relation_set(R,Set) :- findall([X,Y],call(R,X,Y),L), list_to_set(L,Set).
 sections(R,Sections) :- relation_set(R,Set), domain(Set,D), findall(Section,(member(X,D),xR(X,R,Section)),L),list_to_set(L,Sections).
 
+
 % Predicates for writing graphs (graphviz)
 
 % open / close / headers / footers

@@ -2,6 +2,9 @@
         [
         gen_binop/2,
 		binop12/2,
+        binop_star/3,
+        binop_circle/3,
+        assoc_for_elem/2,
         gen_assoc_binop/2,
         non_assoc_binop/1,
 		assoc_binop_for/4,
@@ -33,6 +36,19 @@ binop12(R3,R2) :- findall([[X,Y],Z],member([X,Y,Z],R3),L), list_to_set(L,R2),len
 gen_binop(A,BinOp):-
              cartesian(A,Cart),
              gen_func(Cart,A,BinOp).
+
+% Predicates for implementing Light's procedure for checking associativity.
+
+binop_star(BinOp,A, BinOpStar):-
+    findall([[X,Y],Z],(member([[A,Y],U],BinOp), member([[X,U],Z],BinOp) ),BinOpStar).
+
+binop_circle(BinOp,A, BinOpCircle):-
+    findall([[X,Y],Z],(member([[X,A],U],BinOp), member([[U,Y],Z],BinOp) ),BinOpCircle).
+        
+assoc_for_elem(BinOp,A):-
+    binop_star(BinOp,A,Star),
+    binop_circle(BinOp,A, Circle),
+    ?=(Star,Circle).
 
 %permute_binop(Bop1,Bop2):-
  
