@@ -1,12 +1,10 @@
-% 
 :-module('functions',
         [
 		has_subset/2,
+        has_subset_of_size/3,
 		is_subset/2,
-		delete_head/2,
 		powerset/2,
 		relation/3,
-        pair_list/1,
         domain/2,
         range/2,
         image/3,
@@ -14,55 +12,129 @@
         function/1,
         gen_func/2,
         gen_func/3,
+        gen_bijection/2,
 		gen_all_funcs/3,
 		choose_val/2,
 		gen_choice_func/3,
         eval/3,
+        eval_on_set/3,
+        make_pair_func/2,
+        stabilizer_of/3,
+        gen_automorph_rel/3,
+        full_automorph_rel/3,
+        full_automorph_from_sset_vset/4,
+        is_automorph_of/2,
+        all_automorphs_of/3,
         cartesian/2,
-        gen_binop/2,
         cartesian/3,
         cartesian3/4,
 		cartesian3/2,
-		binop12/2,
-        non_assoc_binop/1,
-		assoc_binop_for/4,
-		is_assoc_binop/2,
-        has_identity/2,
-		has_inverse_for/4,
-		has_inverses/3,
-        non_commute_binop/1,
-        left_mults/3,
-        write_list_vert/1,
-		write_set_hor/1,
         subst_value/4,
         subst_value/3,
         subst_value_list/3,
         range_list/2,
 		collection_of_nonempty_sets/2,
-		write_op_table/1
+        test1/4,
+        test_bijections/0,
+        test_bijections/3,
+        test_all_bijections/0,
+        write_rel_bij/2,
+        is_function/1,
+        is_bijection/1,
+        is_bijection/3,
+        subsets/2,
+        all_subsets/2,
+        all_bijections/3,
+        set_equal/2
         ]).
  
 :-use_module(library(random)).
 :-use_module(library(aggregate)).
+:-use_module('binops.pro').
+:-use_module('listpreds.pro').
 
+set_equal(A,B):- subset(A,B), subset(B,A).
+
+
+% Subsets, from ChatGPT
+% generate subsets of a list
+subsets([], []).
+subsets([X|Xs], [X|Ys]) :- subsets(Xs, Ys).
+subsets([_|Xs], Ys) :- subsets(Xs, Ys).
+
+% generate all subsets of a set
+all_subsets(Set, Subsets) :-
+    list_to_set(Set, SetUnique),
+    findall(Subset, (subsets(SetUnique, Subset), length(Subset, N), N > 0), Subsets).
+
+single_valued(X, Pairs) :-
+    findall(Y, member([X,Y], Pairs), Ys),
+    list_to_set(Ys, Set),
+    length(Set, 1).
+
+is_bijection(Pairs) :-
+    is_function(Pairs),
+    is_injection(Pairs),
+    is_surjection(Pairs).
+
+is_bijection(Pairs,Dom,Rng) :-
+    is_function(Pairs),
+    domain(Pairs,D), set_equal(D,Dom),
+    range(Pairs,R), set_equal(R,Rng),
+    is_injection(Pairs),
+    is_surjection(Pairs).
+    
+is_injection(Pairs) :-
+    \+ (member([X1,Y], Pairs),
+            member([X2,Y], Pairs),
+            X1 \= X2).
+    
+is_surjection(Pairs) :-
+ground(Pairs),
+findall(Y, (member([_,Y], Pairs), nonvar(Y)), Ys),
+sort(Ys, DistinctYs),
+length(Pairs, NumPairs),
+length(DistinctYs, NumDistinct),
+(   NumDistinct =:= 0, NumPairs =:= 0
+;   NumDistinct > 0,
+    forall(member(Y, DistinctYs),
+            (member([_, Y], Pairs))
+    ),
+    NumPairs =:= NumDistinct
+).
+                                                
+all_equal(_, []).
+all_equal(X, [Y|Ys]) :-
+    X == Y,
+    all_equal(X, Ys).
+    
 % Bactrackable subset predicate Volodymyr Ostruk (stackoverflow, Jan 1, 2016)
+% Superceded by all_subsets, and its logic.
 
 has_subset(_, []).
 has_subset([X|L], [A|NTail]):-
     member(A,[X|L]),    
-    has_subset(L, NTail),
+    has_subset(L, NTailtmp),
+    sort(NTailtmp,NTail),
     not(member(A, NTail)).
 
-is_subset([], []).
+is_subset([], A) :- is_set(A).
 is_subset([E|Tail], [E|NTail]):-
   is_subset(Tail, NTail).
 is_subset([_|Tail], NTail):-
   is_subset(Tail, NTail).
 
-delete_head([],[]).
-delete_head([_|T],T).
 
-powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
+%powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
+powerset(X,P) :- all_subsets(X,P).
+
+% Seems to produce duplicate subsets:
+%has_subset_of_size(A,S,N) :- ground(A), ground(N),has_subset(A,Stmp),sort(Stmp,S), length(S,N).
+
+% Works but very inefficient.
+has_subset_of_size(A,S,N) :- ground(A), ground(N), powerset(A,P), 
+                            findall(Stmp,(member(Stmp,P),length(Stmp,N)),L), 
+                            list_to_set(L,SoS), !, member(S,SoS).
 
 collection_of_nonempty_sets(C,X) :- is_set(X), \+X=[], 
 	powerset(X,P), !, 
@@ -73,12 +145,7 @@ collection_of_nonempty_sets(C,X) :- is_set(X), \+X=[],
 
 relation(Dom,Rng,R) :- cartesian(Dom,Rng,Cart), powerset(Cart,P), member(R,P).
  
-% Determines if a list is a list or ordered pairs.  The following grows without bound:
-pair_list([]).
-pair_list([[X,Y]|T]) :-
-			 nonvar(X), nonvar(Y),
-             pair_list(T).
- 
+
  
 % As a list of pairs is a relation, this predicate produces the domain of
 % that relation:  Note the definition of pair_list requires PL to be instantiated.
@@ -129,8 +196,8 @@ gen_func([H|T],Rng,Func1,Func) :-
 			 
 gen_all_funcs(Dom,Rng,Funcs) :- findall(F,gen_func(Dom,Rng,F),L), list_to_set(L,Funcs).			 
 
+
 choose_val(A,V):-member(V,A).
-make_pair(A,V,[A,V]).
 
 gen_choice_func(X,C,F) :- collection_of_nonempty_sets(C,X), 
 		Dom=C,
@@ -138,11 +205,59 @@ gen_choice_func(X,C,F) :- collection_of_nonempty_sets(C,X),
 		maplist(make_pair,Dom,Vals,Ftmp),
 		sort(Ftmp,F).
 		
- 
 eval(F,X,Y) :- nonvar(F), nonvar(X),
              function(F),
              member([X,Y],F).
- 
+eval_on_set(F,S1,S2) :-
+    findall(Y,(member(X,S1),eval(F,X,Y)),L), list_to_set(L,S2),!.
+
+eval_on_pair(F,[X,Y],[RX,RY]):- eval(F,X,RX), eval(F,Y,RY).
+
+make_pair_func(F,Pair_Func) :- domain(F,D),cartesian(D,C), 
+    findall([[X,Y],[FX,FY]],(member([X,Y],C),eval(F,X,FX),eval(F,Y,FY)),L),
+    list_to_set(L,Pair_Func), !.
+
+gen_bijection(DomRng,F) :-
+    permutation(DomRng,Rng), 
+    make_pair_list(DomRng,Rng,F).
+
+stabilizer_of(BaseSet,Pair,Stabilizer) :- cartesian(BaseSet,BaseSet,Cart),
+    member(Pair,Cart), RandSub=[Pair], 
+    findall(Sigma,(gen_bijection(BaseSet,Sigma),is_automorph_of(Sigma,RandSub)),Stabilizer).
+
+
+is_automorph_of(F,R):- forall(member([X,Y],R),
+                        (eval_on_pair(F,[X,Y],[FX,FY]),member([FX,FY],R))).
+all_automorphs_of(R,SuperDom,Autos):- 
+                findall(G,(gen_bijection(SuperDom,G),is_automorph_of(G,R)),L),
+                list_to_set(L,Autos).
+
+gen_automorph_rel([X0,Y0],F,R) :- gen_automorph_rel([X0,Y0],[],F,[],R).
+
+gen_automorph_rel([X0,Y0],[X0,Y0],_,R,R).
+gen_automorph_rel([X0,Y0],Pair,F,Rinc,R) :- 
+    (
+     Pair=[]-> eval_on_pair(F,[X0,Y0],[FX,FY])
+    ;
+     Pair=[X,Y],
+     eval_on_pair(F,[X,Y],[FX,FY])
+     ),
+    Rnew = [[FX,FY]|Rinc],
+    list_to_set(Rnew,Snew),
+    gen_automorph_rel([X0,Y0],[FX,FY],F,Snew,R).
+
+full_automorph_rel(SeedSet,F,Rel):-
+    make_pair_func(F,PF),
+    full_automorph_rel(SeedSet,PF,SeedSet,[],Rel).
+
+full_automorph_rel(_,_,Rel,Rel,Rel):-!.
+full_automorph_rel(SeedSet,PF,LastSet,NewSet,Rel):-
+    eval_on_set(PF,LastSet,Temp),
+    list_to_set(Temp,NewSetTmp), 
+    union(LastSet,NewSetTmp,Union),
+    union(NewSet,Union,NextNewSet),
+    full_automorph_rel(SeedSet,PF,NewSet,NextNewSet,Rel).
+
 cartesian(A,B,Cart):-
              findall([X,Y],(member(X,A),member(Y,B)),L),
              list_to_set(L,Cart),!.
@@ -154,102 +269,80 @@ cartesian3(A,B,C,Cart):-
              list_to_set(L,Cart),!.
 cartesian3(A,Cart) :- cartesian3(A,A,A,Cart).
 
-binop12(R3,R2) :- findall([[X,Y],Z],member([X,Y,Z],R3),L), list_to_set(L,R2),length(L,M),length(R2,N),M=N.
- 
-gen_binop(A,BinOp):-
-             cartesian(A,Cart),
-             gen_func(Cart,A,BinOp).
- 
+             
 subst_value(Y,Z,[X,Y],[X,Z]).
 subst_value(Z,[X,_],[X,Z]).
  
 subst_value_list([],List,List).
 subst_value_list([H|T],[[H1,_]|T1],[[H1,H]|T2]):-
              subst_value_list(T,T1,T2).
- 
-%permute_binop(Bop1,Bop2):-
- 
-assoc_binop_for(BinOp,X,Y,Z) :- eval(BinOp,[X,Y],Left),
-			eval(BinOp,[Left,Z],Result),
-			eval(BinOp,[Y,Z],Right),
-			eval(BinOp,[X,Right],Result).
-			
-is_assoc_binop(BinOp,A) :- cartesian3(A,A,A, Cart3),
-			forall(member([X,Y,Z],Cart3),assoc_binop_for(BinOp,X,Y,Z)).
-			
-non_assoc_binop(BinOp):-
-             domain(BinOp,D),
-             flatten(D,A),
-             cartesian3(A,A,A,Cart),
-             member([X,Y,Z],Cart),
-             eval(BinOp,[X,Y],X1),
-             eval(BinOp,[Y,Z],Y2),
-             eval(BinOp,[X1,Z],U),
-             eval(BinOp,[X,Y2],V),
-             U\=V.
- 
-has_identity(BinOp,Id):-
-             binop_domain(BinOp,Dom),
-             member(E,Dom),
-             findall(B,(member(B,Dom),eval(BinOp,[E,B],B),eval(BinOp,[B,E],B)),L),
-             list_to_set(L,S),
-             S==Dom,
-             E=Id.
 
-has_inverse_for(BinOp,X,Y,Id) :- var(Id), has_identity(BinOp,Id), eval(BinOp,[X,Y],Id). 
-has_inverse_for(BinOp,X,Y,Id) :- nonvar(Id), eval(BinOp,[X,Y],Id). 
+full_automorph_from_sset_vset(SeedSet,VertexSet,Bijection,FullRelation):- 
+    gen_bijection(VertexSet,Bijection), 
+    full_automorph_rel(SeedSet,Bijection,FullRelation).
 
-has_inverses(BinOp,A,Id) :- var(Id),
-			has_identity(BinOp,Id),
-			forall(member(X,A),(member(Y,A),has_inverse_for(BinOp,X,Y,Id))).
-			
-has_inverses(BinOp,A,Id) :- nonvar(Id),
-			forall(member(X,A),(member(Y,A),has_inverse_for(BinOp,X,Y,Id))).
-	
- 
-binop_domain(BinOp,Dom):-
-             domain(BinOp,D),
-             flatten(D,D1),
-             list_to_set(D1,Dom).
- 
- 
-non_commute_binop(BinOp):-
-             binop_domain(BinOp,Dom),
-             cartesian(Dom,Cart),
-             member([X,Y],Cart),
-             eval(BinOp,[X,Y],Z1),
-             eval(BinOp,[Y,X],Z2),
-             Z1\==Z2.
- 
-left_mults(X,Bop,Mults):-
-             binop_domain(Bop,Dom),
-             findall(Z,(member(Y,Dom),eval(Bop,[X,Y],Z)),Mults).
- 
- 
-write_list_wo_commas([]).
-write_list_wo_commas([H|T]):-
-             write(H), write(' '),
-             write_list_wo_commas(T).
- 
- 
-write_list_vert([]).
-write_list_vert([H|T]):-
-             write(H),nl,
-             write_list_vert(T).
- 
-write_op_table(Bop):- nonvar(Bop),
-             binop_domain(Bop,Dom),
-             write('   '), write_list_wo_commas(Dom),nl,
-			 foreach(member(X,Dom),
-				( 
-					write(X), 
-					write('  '),
-					forall(member(Y,Dom),(eval(Bop,[X,Y],Z),!,write(Z),write(' '))),
-					nl)
-				).
+is_function(Relation) :-
+    % Create a list of all the X values
+    get_domain(Relation, Domain),
+    % Check if each X value maps to a unique Y value
+    check_uniqueness(Relation, Domain).
 
-write_set_hor(S) :- write('{'), write_set_hor(S,S).
-write_set_hor(_,[X]) :- write(X), write('}'), !.
-write_set_hor(S,[H|T]) :- write(H),write(','), write_set_hor(S,T).
+% Given a relation, return a list of all the X values
+get_domain(Relation, Domain) :-
+    % Use findall to collect all the unique X values in the relation
+    findall(X, member([X,_], Relation), DomainList),
+    % Use list_to_set to remove duplicates
+    list_to_set(DomainList, Domain).
 
+% Given a relation and a list of X values, check if each X value maps to a unique Y value
+check_uniqueness(_, []) :- !.
+check_uniqueness(Relation, [X|Xs]) :-
+    % Use findall to collect all the Y values that map to X
+    findall(Y, member([X,Y], Relation), YList),
+    % Use list_to_set to remove duplicates
+    list_to_set(YList, UniqueY),
+    % If there's only one Y value, move on to the next X value
+    length(UniqueY, 1),
+    check_uniqueness(Relation, Xs).
 
+% Experiments:
+test1(SeedSet,VertexSet,Bijection,FullRelation):-
+    full_automorph_from_sset_vset(SeedSet,VertexSet,Bijection,FullRelation), 
+    nl,nl,write('*****'), nl, 
+    write('Seed Set: '),write(SeedSet),nl,
+    write('Vertex Set: '),
+    write(VertexSet),nl,
+    write('Bijection: '),
+    write(Bijection),nl,
+    write('Full Relation: '),write(FullRelation),nl,nl.
+test_bijections:- test_bijections([[a,b,c],R,Bs]),
+    write_rel_bij(R,Bs).
+
+test_bijections(A,R,Bs):- 
+        all_bijections(A,A,Bijections),
+        cartesian(A,Cart),
+        all_subsets(Cart,Subsets),
+        member(R,Subsets),
+        findall(Bij,
+            (member(Bij,Bijections),
+            make_pair_func(Bij,PairFunc),
+            eval_on_set(PairFunc,R,S),
+            set_equal(R,S)),L),
+        list_to_set(L,Bs).
+
+write_rel_bij(R,Bs):-
+        write('Relation R:'),nl,
+        write_list_vert(R), 
+        write('Bijections: '),nl,
+        write_list_vert(Bs).
+
+all_bijections(A,B,Bs):- cartesian(A,B,C),
+    all_subsets(C,Subsets),
+    findall(F,
+        (member(F,Subsets),
+        is_bijection(F,A,B)),
+    L),
+    list_to_set(L,Bs).
+
+test_all_bijections:- all_bijections([a,b,c],[a,b,c],Bs),
+    write_list_vert(Bs).
