@@ -19,6 +19,7 @@
         eval/3,
         eval_on_set/3,
         make_pair_func/2,
+        stabilizer_of/3,
         gen_automorph_rel/3,
         full_automorph_rel/3,
         full_automorph_from_sset_vset/4,
@@ -33,7 +34,18 @@
         subst_value_list/3,
         range_list/2,
 		collection_of_nonempty_sets/2,
-        test1/4
+        test1/4,
+        test_bijections/0,
+        test_bijections/3,
+        test_all_bijections/0,
+        write_rel_bij/2,
+        is_function/1,
+        is_bijection/1,
+        is_bijection/3,
+        subsets/2,
+        all_subsets/2,
+        all_bijections/3,
+        set_equal/2
         ]).
  
 :-use_module(library(random)).
@@ -41,7 +53,63 @@
 :-use_module('binops.pro').
 :-use_module('listpreds.pro').
 
+set_equal(A,B):- subset(A,B), subset(B,A).
+
+
+% Subsets, from ChatGPT
+% generate subsets of a list
+subsets([], []).
+subsets([X|Xs], [X|Ys]) :- subsets(Xs, Ys).
+subsets([_|Xs], Ys) :- subsets(Xs, Ys).
+
+% generate all subsets of a set
+all_subsets(Set, Subsets) :-
+    list_to_set(Set, SetUnique),
+    findall(Subset, (subsets(SetUnique, Subset), length(Subset, N), N > 0), Subsets).
+
+single_valued(X, Pairs) :-
+    findall(Y, member([X,Y], Pairs), Ys),
+    list_to_set(Ys, Set),
+    length(Set, 1).
+
+is_bijection(Pairs) :-
+    is_function(Pairs),
+    is_injection(Pairs),
+    is_surjection(Pairs).
+
+is_bijection(Pairs,Dom,Rng) :-
+    is_function(Pairs),
+    domain(Pairs,D), set_equal(D,Dom),
+    range(Pairs,R), set_equal(R,Rng),
+    is_injection(Pairs),
+    is_surjection(Pairs).
+    
+is_injection(Pairs) :-
+    \+ (member([X1,Y], Pairs),
+            member([X2,Y], Pairs),
+            X1 \= X2).
+    
+is_surjection(Pairs) :-
+ground(Pairs),
+findall(Y, (member([_,Y], Pairs), nonvar(Y)), Ys),
+sort(Ys, DistinctYs),
+length(Pairs, NumPairs),
+length(DistinctYs, NumDistinct),
+(   NumDistinct =:= 0, NumPairs =:= 0
+;   NumDistinct > 0,
+    forall(member(Y, DistinctYs),
+            (member([_, Y], Pairs))
+    ),
+    NumPairs =:= NumDistinct
+).
+                                                
+all_equal(_, []).
+all_equal(X, [Y|Ys]) :-
+    X == Y,
+    all_equal(X, Ys).
+    
 % Bactrackable subset predicate Volodymyr Ostruk (stackoverflow, Jan 1, 2016)
+% Superceded by all_subsets, and its logic.
 
 has_subset(_, []).
 has_subset([X|L], [A|NTail]):-
@@ -57,7 +125,8 @@ is_subset([_|Tail], NTail):-
   is_subset(Tail, NTail).
 
 
-powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
+%powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
+powerset(X,P) :- all_subsets(X,P).
 
 % Seems to produce duplicate subsets:
 %has_subset_of_size(A,S,N) :- ground(A), ground(N),has_subset(A,Stmp),sort(Stmp,S), length(S,N).
@@ -89,7 +158,7 @@ domain(PL,Dom) :-
 range(PL, Rng) :-
 			 pair_list(PL),
              findall(Y,member([_,Y],PL),L),
-             list_to_set(L,Rng),!.
+             list_to_set(L,Rng).
  
 range_list(PL, RngList):-
              pair_list(PL),
@@ -152,6 +221,11 @@ gen_bijection(DomRng,F) :-
     permutation(DomRng,Rng), 
     make_pair_list(DomRng,Rng,F).
 
+stabilizer_of(BaseSet,Pair,Stabilizer) :- cartesian(BaseSet,BaseSet,Cart),
+    member(Pair,Cart), RandSub=[Pair], 
+    findall(Sigma,(gen_bijection(BaseSet,Sigma),is_automorph_of(Sigma,RandSub)),Stabilizer).
+
+
 is_automorph_of(F,R):- forall(member([X,Y],R),
                         (eval_on_pair(F,[X,Y],[FX,FY]),member([FX,FY],R))).
 all_automorphs_of(R,SuperDom,Autos):- 
@@ -207,6 +281,30 @@ full_automorph_from_sset_vset(SeedSet,VertexSet,Bijection,FullRelation):-
     gen_bijection(VertexSet,Bijection), 
     full_automorph_rel(SeedSet,Bijection,FullRelation).
 
+is_function(Relation) :-
+    % Create a list of all the X values
+    get_domain(Relation, Domain),
+    % Check if each X value maps to a unique Y value
+    check_uniqueness(Relation, Domain).
+
+% Given a relation, return a list of all the X values
+get_domain(Relation, Domain) :-
+    % Use findall to collect all the unique X values in the relation
+    findall(X, member([X,_], Relation), DomainList),
+    % Use list_to_set to remove duplicates
+    list_to_set(DomainList, Domain).
+
+% Given a relation and a list of X values, check if each X value maps to a unique Y value
+check_uniqueness(_, []) :- !.
+check_uniqueness(Relation, [X|Xs]) :-
+    % Use findall to collect all the Y values that map to X
+    findall(Y, member([X,Y], Relation), YList),
+    % Use list_to_set to remove duplicates
+    list_to_set(YList, UniqueY),
+    % If there's only one Y value, move on to the next X value
+    length(UniqueY, 1),
+    check_uniqueness(Relation, Xs).
+
 % Experiments:
 test1(SeedSet,VertexSet,Bijection,FullRelation):-
     full_automorph_from_sset_vset(SeedSet,VertexSet,Bijection,FullRelation), 
@@ -217,3 +315,34 @@ test1(SeedSet,VertexSet,Bijection,FullRelation):-
     write('Bijection: '),
     write(Bijection),nl,
     write('Full Relation: '),write(FullRelation),nl,nl.
+test_bijections:- test_bijections([[a,b,c],R,Bs]),
+    write_rel_bij(R,Bs).
+
+test_bijections(A,R,Bs):- 
+        all_bijections(A,A,Bijections),
+        cartesian(A,Cart),
+        all_subsets(Cart,Subsets),
+        member(R,Subsets),
+        findall(Bij,
+            (member(Bij,Bijections),
+            make_pair_func(Bij,PairFunc),
+            eval_on_set(PairFunc,R,S),
+            set_equal(R,S)),L),
+        list_to_set(L,Bs).
+
+write_rel_bij(R,Bs):-
+        write('Relation R:'),nl,
+        write_list_vert(R), 
+        write('Bijections: '),nl,
+        write_list_vert(Bs).
+
+all_bijections(A,B,Bs):- cartesian(A,B,C),
+    all_subsets(C,Subsets),
+    findall(F,
+        (member(F,Subsets),
+        is_bijection(F,A,B)),
+    L),
+    list_to_set(L,Bs).
+
+test_all_bijections:- all_bijections([a,b,c],[a,b,c],Bs),
+    write_list_vert(Bs).

@@ -45,8 +45,8 @@ open_dot_file(Filename, Fd, Label) :- open(Filename, write, Fd),
 	write(Fd,'label=\"'),write(Fd,Label), write(Fd,'\";\n'),
 	write(Fd, 'layout=circo;\n'),
 	write(Fd, 'rankdir=LR;\n'),
-	write(Fd, 'orientation=landscape;\n'),
-	write(Fd, 'size =\"10,8\";\n').
+	write(Fd, 'orientation=portrait;\n').
+%	write(Fd, 'size =\"4,6\";\n').
 
 close_dot_file(Fd) :- write(Fd,'}\n'), close(Fd).
 
@@ -62,19 +62,47 @@ write_ternary_dot_pair([X,Y],Dom,Rng,Fd) :-
 	nth0(Yindex,Rng,Y), atom_concat('b',Yindex,Ylabel),
 	write(Fd,Xlabel), write(Fd,'->'), 
 	write(Fd,Ylabel), write(Fd,';\n'),
-	write(Fd,Xlabel), write(Fd, ' '), write(Fd, '[label=\"'), write(Fd, X), write(Fd, '\"]\n'),
-	write(Fd,Ylabel), write(Fd, ' '), write(Fd, '[label=\"'), write(Fd, Y), write(Fd, '\"]\n').
+	list_to_tuple(X,TupleX),
+	list_to_tuple(Y,TupleY),
+	write(Fd,Xlabel), write(Fd, ' '), write(Fd, '[label=\"'), write(Fd, TupleX), write(Fd, '\"]\n'),
+	write(Fd,Ylabel), write(Fd, ' '), write(Fd, '[label=\"'), write(Fd, TupleY), write(Fd, '\"]\n').
 
 write_ternary_dot_pairs(Pairs, Fd) :- domain(Pairs,Dom), range(Pairs,Rng),
 		forall(member([X,Y],Pairs),write_ternary_dot_pair([X,Y],Dom,Rng, Fd)).
 
+list_to_tuple([X,Y], Tuple) :-
+	!,  % Cut to enforce that the input is a two-element list
+	format(atom(Tuple), '(~w,~w)', [X,Y]).
+list_to_tuple(Input, Input).
+		
 gen_tern_dot(Rel,Filename) :- open_dot_file(Filename,Fd,' '), 
 							write_ternary_dot_pairs(Rel,Fd), 
 							close_dot_file(Fd).
 
 rand_sub(Set,M, RandSub) :- length(Set,N), randset(M,N,S), 
 	findall(SN,(member(X,S),nth1(X,Set,SN)),RandSub).
+
+rand_subs3(Set,M,Collection):-
+	repeat,
+		rand_sub(Set,M,T),rand_sub(Set,M,S),\+S=T,rand_sub(Set,M,R),\+S=R,\+T=R, 
+		Collection=[R,T,S],
+		(union_collection(Collection,Set)->!;fail).
+
+has_Msubset(X,M,Sub):- has_Msubset(X,M,0,[],[],Sub).
+has_Msubset(_,M,M,_,Sub,Sub).
+has_Msubset(X,M,M0,SortedSubs,Sub0,Sub):-
+	write('SortedSubs before: '), write(SortedSubs),nl,
+	member(Y,X),\+member(Y,Sub0),
+	union(Sub0,[Y],Sub1),
+	sort(Sub1,SortedSub),
+	\+member(SortedSub,SortedSubs),
+	union([SortedSub],SortedSubs,NewSortedSubs),
+	write('SortedSubs after: '), write(NewSortedSubs), nl,
+	M1 is M0 + 1,
+	has_Msubset(X,M,M1,NewSortedSubs,Sub1,Sub).
+
 bin2tern([[X,Y],Z],[X,Y,Z]).
+tern2bin([X,Y,Z],[[X,Y],Z]).
 
 write_latex_triple([X,Y,Z]) :- write('('),write(X),write(','),write(Y),write(','), write(Z),write(')').
 
@@ -84,6 +112,7 @@ write_latex_triple_set([H|T],1) :-	write_latex_triple(H),
 								(T=[]->write('}');write(','),write_latex_triple_set(T,1)).	
 								
 gen_dot_filename(Filename) :- gen_filename('.dot',Filename).
+gen_dot_filename(Path,Filename) :- gen_filename(Path,'.dot',Filename).
 
 gen_filename(Ext, Filename) :- get_time(TS), stamp_date_time(TS,Date,local), 
 							date_time_value(year,Date,Y),	write(Y),nl,						
@@ -96,6 +125,19 @@ gen_filename(Ext, Filename) :- get_time(TS), stamp_date_time(TS,Date,local),
 							atomics_to_string([Y,M,D,H,Min,Secs],'-',Fileprefix),
 							atom_string(Atom,Fileprefix),
 							atom_concat(Atom,Ext,Filename).
+
+gen_filename(Path,Ext, Filename) :- get_time(TS), stamp_date_time(TS,Date,local), 
+							date_time_value(year,Date,Y),	write(Y),nl,						
+							date_time_value(month,Date,M),	write(M),nl,
+							date_time_value(day,Date,D),	write(D),nl,
+							date_time_value(hour,Date,H),	write(H),nl,				
+							date_time_value(minute,Date,Min),	write(M),nl,						
+							date_time_value(second,Date,S),	write(S),nl,
+							Secs is floor(S*100),
+							atomics_to_string([Y,M,D,H,Min,Secs],'-',Fileprefix),
+							atom_string(Atom,Fileprefix),
+							atom_concat(Path,Atom, Atom2),
+							atom_concat(Atom2,Ext,Filename).
 
 gen_rand_graph(BaseSet,M, RandSub) :-  A=BaseSet,
 							cartesian(A,A,Dom), 
@@ -114,7 +156,6 @@ make_dot_file(GraphPairs) :- gen_dot_filename(F),
 							close_dot_file(Fd).
 
 complete_graph(Set,U) :- cartesian(Set,Set,S2), maplist(pair_to_edge,S2,Es), vertices_edges_to_ugraph([],Es,U).   
-
 
 % Write binary relation pairs to dot file:
 write_dot_pair([X,Y],Fd) :- X=Y, uuid(Xlabel,[format(integer)]),Ylabel=Xlabel,
@@ -145,7 +186,20 @@ ugraph_to_dot(U,Label) :- gen_dot_filename(F),
 						_),
 					close_dot_file(Fd).
 
-ugraph_to_dot(U,Label,Nonblank,F) :- gen_dot_filename(F), 
+ugraph_to_dot(U,Label,F) :-  
+					open_dot_file(F,Fd, Label),  
+					vertices(U,Vs),
+					make_vertex_uuid_pairs(Vs,VPairs),
+					maplist(vertex_pair_to_label_string,VPairs,LPairs),
+					findall(X,(member(X,LPairs),write(Fd,X)),_),
+					edges(U,Es),
+					findall(DotEdge, 
+						(member(Edge,Es),edge_to_dot(Edge,VPairs,DotEdge),write(Fd,DotEdge)),
+						_),
+					close_dot_file(Fd).
+
+
+ugraph_to_dot(U,Label,Nonblank,F) :-  
 					open_dot_file(F,Fd, Label),  
 					vertices(U,Vs),
 					make_vertex_uuid_pairs(Vs,VPairs),
@@ -184,7 +238,7 @@ disjoint_from_collection(A,Collection) :- subtract(Collection,[A],C),
 			forall(member(X,C),disjoint(X,A)).
 disjoint_collection(C) :- forall(member(X,C),disjoint_from_collection(X,C)).
 
-set_equal(A,B) :- forall(member(X,A),member(X,B)), forall(member(Y,B),member(Y,A)).
+%set_equal(A,B) :- forall(member(X,A),member(X,B)), forall(member(Y,B),member(Y,A)).
 partition(C,A) :- disjoint_collection(C), union_collection(C,B), set_equal(A,B).
 
 binop_range_to_ugraph_component(BinOp,Z,U) :- range(BinOp,Rng), member(Z,Rng),
