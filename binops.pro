@@ -30,6 +30,7 @@
 :-use_module(library(aggregate)).
 :-use_module('functions.pro').
 :-use_module('listpreds.pro').
+:-use_module('octonions.pro').
 
 binop12(R3,R2) :- findall([[X,Y],Z],member([X,Y,Z],R3),L), list_to_set(L,R2),length(L,M),length(R2,N),M=N.
  
