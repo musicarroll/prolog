@@ -3,6 +3,7 @@
 :-use_module('graphext.pro').
 :-use_module('binops.pro').
 :-use_module('listpreds.pro').
+:-use_module('octonions.pro').
 
 r(X,Y) :- member([X,Y],[[a,b],[a,c],[b,c],[c,d],[d,d]]).
 s(X,Y) :- member([X,Y],[[a,a],[b,c],[b,d]]).
@@ -250,6 +251,18 @@ findall_components(BinOp,ComponentList) :- range(BinOp,Rng),
 binop_range_to_ugraph(BinOp,U) :- findall_components(BinOp,L),
 							union_collection(L,AllEs), vertices_edges_to_ugraph([],AllEs,U).
 
-binop_to_dot(BinOp) :- binop_range_to_ugraph(BinOp,U), ugraph_to_dot(U).
+binop_to_ugraph(BinOp,U):- pairs_to_edges(BinOp,Edges), vertices_edges_to_ugraph([], Edges, U).
+
+
+binop_to_dot(BinOp,U,Label) :- binop_to_ugraph(BinOp,U), ugraph_to_dot(U,Label).
+binop_to_svg(BinOp,U,Label, Filename):- binop_to_ugraph(BinOp,U), ugraph_to_dot(U,Label,Filename), generate_svg(Filename).
+generate_svg(FileName) :-
+    % Concatenating the command with the file names
+    atom_concat('dot -Tsvg ', FileName, PartCommand),
+    atom_concat(PartCommand, ' -o ', Command1),
+    atom_concat(FileName, '.svg', OutputFile),
+    atom_concat(Command1, OutputFile, Command),
+    shell(Command).
+
 
 								
