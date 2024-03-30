@@ -183,7 +183,11 @@ ugraph_to_dot(U,Label) :- gen_dot_filename(F),
 					maplist(vertex_pair_to_label_string,VPairs,LPairs),
 					findall(X,(member(X,LPairs),write(Fd,X)),_),
 					edges(U,Es),
+<<<<<<< HEAD
+					findall(DotEdge, 
+=======
 					findallb(DotEdge, 
+>>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
 						(member(Edge,Es),edge_to_dot(Edge,VPairs,DotEdge),write(Fd,DotEdge)),
 						_),
 					close_dot_file(Fd).
@@ -251,8 +255,23 @@ findall_components(BinOp,ComponentList) :- range(BinOp,Rng),
 binop_range_to_ugraph(BinOp,U) :- findall_components(BinOp,L),
 							union_collection(L,AllEs), vertices_edges_to_ugraph([],AllEs,U).
 
+<<<<<<< HEAD
+binop_to_ugraph(BinOp,U):- pairs_to_edges(BinOp,Edges), vertices_edges_to_ugraph([], Edges, U).
+
+
+binop_to_dot(BinOp,U,Label) :- binop_to_ugraph(BinOp,U), ugraph_to_dot(U,Label).
+binop_to_svg(BinOp,U,Label, Filename):- binop_to_ugraph(BinOp,U), ugraph_to_dot(U,Label,Filename), generate_svg(Filename).
+generate_svg(FileName) :-
+    % Concatenating the command with the file names
+    atom_concat('dot -Tsvg ', FileName, PartCommand),
+    atom_concat(PartCommand, ' -o ', Command1),
+    atom_concat(FileName, '.svg', OutputFile),
+    atom_concat(Command1, OutputFile, Command),
+    shell(Command).
+=======
 binop_to_dot(BinOp,U) :- binop_range_to_ugraph(BinOp,U), ugraph_to_dot(U).
 
+>>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
 
 
 								

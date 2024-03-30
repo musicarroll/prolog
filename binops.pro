@@ -1,10 +1,14 @@
 :-module('binops',
         [
         gen_binop/2,
+<<<<<<< HEAD
         gen_nth_binop/3,
 		binop12/2,
         index_to_word/4,
         gen_nth_binop_lex/4,
+=======
+		binop12/2,
+>>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
         binop_star/3,
         binop_circle/3,
         assoc_for_elem/2,
@@ -157,7 +161,7 @@ non_assoc_binop(BinOp):-
              eval(BinOp,[X1,Z],U),
              eval(BinOp,[X,Y2],V),
              U\=V.
- 
+            (djangoenv) cognotrend.com:~/Documents/prolog/prolog> git pull origin main
 has_identity(BinOp,Id):-
              binop_domain(BinOp,Dom),
              member(E,Dom),
