@@ -124,34 +124,12 @@ is_subset([E|Tail], [E|NTail]):-
 is_subset([_|Tail], NTail):-
   is_subset(Tail, NTail).
 
-% Generate the power set of Set
-powerset(Set, PowerSet) :-
-    length(Set, Length),
-    Limit is 2^Length,
-    UpperBound is Limit - 1, % Ensure arithmetic evaluation
-    findall(Subset, (between(0, UpperBound, Index), index_to_subset(Index, Set, Subset)), PowerSet).
-
-% Map an index to a subset of Set based on the binary representation of the index
-index_to_subset(Index, Set, Subset) :-
-    binary_rep(Index, Set, [], RevSubset),
-    reverse(RevSubset, Subset).
-
-% Generate a subset from a binary representation
-binary_rep(0, [], Subset, Subset) :- !.
-binary_rep(Index, [Element|Set], Acc, Subset) :-
-    Bit is Index mod 2,
-    NextIndex is Index // 2,
-    ( Bit == 1 -> NewAcc = [Element|Acc] ; NewAcc = Acc ),
-    binary_rep(NextIndex, Set, NewAcc, Subset).
-
 
 %powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
-% powerset(X,P) :- all_subsets(X,P).
-
+powerset(X,P) :- all_subsets(X,P).
 
 % Seems to produce duplicate subsets:
 %has_subset_of_size(A,S,N) :- ground(A), ground(N),has_subset(A,Stmp),sort(Stmp,S), length(S,N).
-
 
 % Works but very inefficient.
 has_subset_of_size(A,S,N) :- ground(A), ground(N), powerset(A,P), 

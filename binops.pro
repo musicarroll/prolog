@@ -182,7 +182,6 @@ binop_domain(BinOp,Dom):-
              flatten(D,D1),
              list_to_set(D1,Dom).
  
- 
 non_commute_binop(BinOp):-
              binop_domain(BinOp,Dom),
              cartesian(Dom,Cart),
