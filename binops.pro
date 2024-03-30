@@ -1,7 +1,14 @@
 :-module('binops',
         [
         gen_binop/2,
+<<<<<<< HEAD
+        gen_nth_binop/3,
 		binop12/2,
+        index_to_word/4,
+        gen_nth_binop_lex/4,
+=======
+		binop12/2,
+>>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
         binop_star/3,
         binop_circle/3,
         assoc_for_elem/2,
@@ -38,6 +45,82 @@ gen_binop(A,BinOp):-
              cartesian(A,Cart),
              gen_func(Cart,A,BinOp).
 
+<<<<<<< HEAD
+gen_all_binops(A,BinOps):-
+    cartesian(A,Cart),!,
+    gen_all_funcs(Cart,A,BinOps).
+
+gen_nth_binop(A, N, BinOp) :-
+                gen_all_binops(A,BinOps),
+                nth1(N, BinOps, BinOp).
+
+
+% Helper predicate to convert an index to a base-N number represented as a list of digits.
+index_to_base_n_digits(0, _, []) :- !.
+index_to_base_n_digits(Index, BaseLen, [Digit|Rest]) :-
+    Index > 0,
+    Digit is Index mod BaseLen,
+    NewIndex is Index div BaseLen,
+    index_to_base_n_digits(NewIndex, BaseLen, Rest).
+
+% Converts the list of digits to the corresponding elements in set A.
+digits_to_elements([], _, []).
+digits_to_elements([Digit|Digits], A, [Element|Elements]) :-
+    nth0(Digit, A, Element),
+    digits_to_elements(Digits, A, Elements).
+
+% Ensures the word has the correct length by prepending the necessary number of 'first elements' of A.
+pad_word(Word, Base, A, PaddedWord) :-
+    length(Word, Len),
+    Diff is Base - Len,
+    first_element_padding(Diff, A, Padding),
+    append(Padding, Word, PaddedWord).
+
+first_element_padding(0, _, []) :- !.
+first_element_padding(Count, A, [First|Rest]) :-
+    Count > 0,
+    nth0(0, A, First),  % Assumes A is not empty.
+    NewCount is Count - 1,
+    first_element_padding(NewCount, A, Rest).
+
+% Main predicate to convert an index to its corresponding word.
+index_to_word(Index, Base, A, Word) :-
+    length(A, BaseLen),
+    index_to_base_n_digits(Index, BaseLen, DigitsReversed),
+    reverse(DigitsReversed, Digits),
+    digits_to_elements(Digits, A, TempWord),
+    pad_word(TempWord, Base, A, Word).
+
+% Generates the Nth binary operation in lexicographic order
+% gen_nth_binop_lex(A, N, Base, BinOp) :-
+%     length(A, Len),
+%     TotalElements is Len^Base,
+%     Index is (N - 1) mod TotalElements,
+%     index_to_word(Index, Base, A, BinOp).
+
+gen_nth_binop_lex(A, N, Base, BinOp) :-
+    Index is N - 1,
+    index_to_word(Index, Base, A, BinOp).
+
+word_to_index(BinOp, Base, A, N) :-
+        length(BinOp, Length),
+        % Ensure BinOp has the correct length as per Base
+        Length == Base,
+        word_to_index(BinOp, A, 0, Index),
+        N is Index + 1.
+           
+word_to_index([], _, Accum, Accum).
+word_to_index([H|T], A, Accum, Index) :-
+        nth0(Pos, A, H),
+        length(A, Len),
+        length(T, Remaining),
+        Accum1 is Accum + Pos * Len^Remaining,
+        word_to_index(T, A, Accum1, Index).
+    
+
+
+=======
+>>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
 % Predicates for implementing Light's procedure for checking associativity.
 
 binop_star(BinOp,A, BinOpStar):-
