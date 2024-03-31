@@ -124,7 +124,6 @@ is_subset([E|Tail], [E|NTail]):-
 is_subset([_|Tail], NTail):-
   is_subset(Tail, NTail).
 
-<<<<<<< HEAD
 % Generate the power set of Set
 powerset(Set, PowerSet) :-
     length(Set, Length),
@@ -154,15 +153,6 @@ binary_rep(Index, [Element|Set], Acc, Subset) :-
 %has_subset_of_size(A,S,N) :- ground(A), ground(N),has_subset(A,Stmp),sort(Stmp,S), length(S,N).
 
 
-=======
-
-%powerset(X,P) :- findall(SubSorted,(has_subset(X,Sub),sort(Sub,SubSorted)),L),list_to_set(L,P).
-powerset(X,P) :- all_subsets(X,P).
-
-% Seems to produce duplicate subsets:
-%has_subset_of_size(A,S,N) :- ground(A), ground(N),has_subset(A,Stmp),sort(Stmp,S), length(S,N).
-
->>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
 % Works but very inefficient.
 has_subset_of_size(A,S,N) :- ground(A), ground(N), powerset(A,P), 
                             findall(Stmp,(member(Stmp,P),length(Stmp,N)),L), 
