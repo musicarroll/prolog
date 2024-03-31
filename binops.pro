@@ -5,6 +5,7 @@
 		binop12/2,
         index_to_word/4,
         gen_nth_binop_lex/4,
+        domain_values_to_binop/3,
         binop_star/3,
         binop_circle/3,
         assoc_for_elem/2,
@@ -112,7 +113,9 @@ word_to_index([H|T], A, Accum, Index) :-
         Accum1 is Accum + Pos * Len^Remaining,
         word_to_index(T, A, Accum1, Index).
     
-
+domain_values_to_binop(Set,Vals,BinOp):-
+    cartesian(Set,Set,Cart),
+    make_pair_list(Cart,Vals,BinOp).
 
 % Predicates for implementing Light's procedure for checking associativity.
 
