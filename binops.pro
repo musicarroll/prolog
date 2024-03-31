@@ -157,7 +157,7 @@ non_assoc_binop(BinOp):-
              eval(BinOp,[X1,Z],U),
              eval(BinOp,[X,Y2],V),
              U\=V.
-            (djangoenv) cognotrend.com:~/Documents/prolog/prolog> git pull origin main
+
 has_identity(BinOp,Id):-
              binop_domain(BinOp,Dom),
              member(E,Dom),
