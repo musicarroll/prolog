@@ -25,6 +25,8 @@
         full_automorph_from_sset_vset/4,
         is_automorph_of/2,
         all_automorphs_of/3,
+        order_set_and_cartesian/3,
+        cartesian_product/3,
         cartesian/2,
         cartesian/3,
         cartesian3/4,
@@ -164,6 +166,38 @@ collection_of_nonempty_sets(C,X) :- is_set(X), \+X=[],
 	has_subset(NP,S), \+S=[], 
 	sort(S,C).
 
+% Utility predicate that orders a set and generates its ordered Cartesian product.
+order_set_and_cartesian(Set, OrderedSet, OrderedCartesian) :-
+    sort(Set, OrderedSet),
+    cartesian_product(OrderedSet, OrderedSet, Cartesian),
+    sort(Cartesian, OrderedCartesian).
+
+% Generate the Cartesian product of two sets.
+cartesian_product([], _, []).
+cartesian_product([A|As], Bs, Product) :-
+    pair_with_all(A, Bs, Paired),
+    cartesian_product(As, Bs, Rest),
+    append(Paired, Rest, Product).
+
+% Pair an element with all elements of a set.
+pair_with_all(_, [], []).
+pair_with_all(A, [B|Bs], [[A,B]|Paired]) :-
+    pair_with_all(A, Bs, Paired).
+
+
+cartesian(A,B,Cart):-
+             findall([X,Y],(member(X,A),member(Y,B)),L),
+             list_to_set(L,Cart),!.
+ 
+cartesian(A,Cart):- cartesian(A,A,Cart).
+ 
+cartesian3(A,B,C,Cart):-
+             findall([X,Y,Z],(member(X,A),member(Y,B),member(Z,C)),L),
+             list_to_set(L,Cart),!.
+cartesian3(A,Cart) :- cartesian3(A,A,A,Cart).
+
+
+
 
 relation(Dom,Rng,R) :- cartesian(Dom,Rng,Cart), powerset(Cart,P), member(R,P).
  
@@ -280,16 +314,6 @@ full_automorph_rel(SeedSet,PF,LastSet,NewSet,Rel):-
     union(NewSet,Union,NextNewSet),
     full_automorph_rel(SeedSet,PF,NewSet,NextNewSet,Rel).
 
-cartesian(A,B,Cart):-
-             findall([X,Y],(member(X,A),member(Y,B)),L),
-             list_to_set(L,Cart),!.
- 
-cartesian(A,Cart):- cartesian(A,A,Cart).
- 
-cartesian3(A,B,C,Cart):-
-             findall([X,Y,Z],(member(X,A),member(Y,B),member(Z,C)),L),
-             list_to_set(L,Cart),!.
-cartesian3(A,Cart) :- cartesian3(A,A,A,Cart).
 
              
 subst_value(Y,Z,[X,Y],[X,Z]).
