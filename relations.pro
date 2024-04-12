@@ -183,7 +183,11 @@ ugraph_to_dot(U,Label) :- gen_dot_filename(F),
 					maplist(vertex_pair_to_label_string,VPairs,LPairs),
 					findall(X,(member(X,LPairs),write(Fd,X)),_),
 					edges(U,Es),
+<<<<<<< HEAD
 					findall(DotEdge, 
+=======
+					findallb(DotEdge, 
+>>>>>>> cf33e14c50f6152124b8a81ff9a6cf4f26551063
 						(member(Edge,Es),edge_to_dot(Edge,VPairs,DotEdge),write(Fd,DotEdge)),
 						_),
 					close_dot_file(Fd).
