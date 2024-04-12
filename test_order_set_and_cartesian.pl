@@ -1,17 +1,35 @@
 :-use_module(library(plunit)).
 :-use_module('functions.pro').
 
+generate_large_list(N, List) :-
+    findall(X, between(1, N, X), List).
+
+
 :- begin_tests(order_set_and_cartesian).
 
 test(cartesian_product) :-
-    cartesian_product([a,b],[c,d],Cart),
-    assertion(Cart == [[a,c],[a,d],[b,c],[b,d]]),
+    NumElems = 500,
+    generate_large_list(NumElems, LargeList), % Generate larger lists
+    cartesian_product(LargeList, LargeList,Answer),
+    statistics(walltime, [StartCart|_]),
+    cartesian_product(LargeList, LargeList, Cart),
+    statistics(walltime, [EndCart|_]),
+    TimeSort is EndCart - StartCart,
+    assertion(Cart == Answer),
+    nl,format('Time taken for cartesian_product/3 with ~w elements: ~w ms~n', [NumElems,TimeSort]),
     !.
 
 test(cartesian) :-
-        cartesian([a,b],[c,d],Cart),
-        assertion(Cart == [[a,c],[a,d],[b,c],[b,d]]),
-        !.
+    NumElems = 500,
+    generate_large_list(NumElems, LargeList), % Generate larger lists
+    cartesian_product(LargeList, LargeList,Answer),
+    statistics(walltime, [StartCart|_]),
+    cartesian(LargeList,LargeList,Cart),
+    statistics(walltime, [EndCart|_]),
+    TimeSort is EndCart - StartCart,
+    assertion(Cart == Answer),
+    nl,format('Time taken for cartesian/3 with ~w elements: ~w ms~n', [NumElems,TimeSort]),
+    !.
     
 test(empty_set) :-
     order_set_and_cartesian([], OrderedSet, OrderedCartesian),

@@ -169,8 +169,8 @@ collection_of_nonempty_sets(C,X) :- is_set(X), \+X=[],
 % Utility predicate that orders a set and generates its ordered Cartesian product.
 order_set_and_cartesian(Set, OrderedSet, OrderedCartesian) :-
     sort(Set, OrderedSet),
-    cartesian_product(OrderedSet, OrderedSet, Cartesian),
-    sort(Cartesian, OrderedCartesian).
+    cartesian_product(OrderedSet, OrderedSet, OrderedCartesian).
+    % sort(Cartesian, OrderedCartesian).
 
 % Generate the Cartesian product of two sets.
 cartesian_product([], _, []).
