@@ -21,6 +21,7 @@
         left_mults/3,
         binop_equiv_class/3,
         binop_equiv_classes/2,
+        show_eclasses/1,
 		write_op_table/1,
         binop_equiv/3,
         klein4/1,
@@ -36,7 +37,14 @@
 :-use_module('listpreds.pro').
 :-use_module('octonions.pro').
 
-binop12(R3,R2) :- findall([[X,Y],Z],member([X,Y,Z],R3),L), list_to_set(L,R2),length(L,M),length(R2,N),M=N.
+% Converts a ternary relation to a binary one by bundling the first two
+% elements into a single pair.
+binop12(R3,R2) :- 
+    findall([[X,Y],Z],member([X,Y,Z],R3),L), 
+    list_to_set(L,R2),
+    length(L,M),
+    length(R2,N),
+    M=N.
  
 gen_binop(A,BinOp):-
              cartesian(A,Cart),
@@ -219,6 +227,21 @@ binop_equiv_classes(BinOp,EquivClasses) :- findall(Class,
                                             (domain(BinOp,Dom),member([X,Y],Dom),
                                             findall(Result,binop_equiv(BinOp,[X,Y],Result),L), 
                                                 list_to_set(L,Class)),Tmp), list_to_set(Tmp, EquivClasses).
+
+% Test to generate equivalence classes for binops:
+show_eclasses(A) :- 
+    gen_binop(A,B), 
+    binop_equiv_classes(B,EquivClasses),
+    length(EquivClasses,M),
+    length(A,N),
+    M=N,
+    write('binop:'),nl,
+    write_list_vert(B),
+    nl,
+    write('equiv classes:'),nl, 
+    write_list_vert(EquivClasses), 
+    write('num of eclasses:'),nl, write(M).
+
 
 klein4(V) :- V=[[[e,e],e],[[e,a],a],[[e,b],b],[[e,c],c],
                 [[a,e],a],[[a,a],e],[[a,b],c],[[a,c],b],

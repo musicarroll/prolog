@@ -55,4 +55,43 @@ test(repeated_elements) :-
     assertion(OrderedCartesian == [[a, a], [a, b], [b, a], [b, b]]),
     !.
 
+% Test Cartesian product of three different sets
+test(different_sets) :-
+    cartesian3([1,2], [a,b], [x,y], Result),
+    Expected = [[1,a,x],[1,a,y],[1,b,x],[1,b,y],[2,a,x],[2,a,y],[2,b,x],[2,b,y]],
+    assertion(Result == Expected),
+    !.
+
+% Test Cartesian product of three identical sets
+test(identical_sets) :-
+    cartesian3([1,2], Result),
+    Expected = [[1,1,1],[1,1,2],[1,2,1],[1,2,2],[2,1,1],[2,1,2],[2,2,1],[2,2,2]],
+    assertion(Result == Expected),
+    !.
+
+% Test with one empty set should yield an empty result
+test(one_empty_set) :-
+    cartesian3([1,2], [a,b], [], Result),
+    assertion(Result == []),
+    !.
+
+% Test with all empty sets
+test(all_empty_sets) :-
+    cartesian3([], [], [], Result),
+    assertion(Result == []),
+    !.
+
+% Test with non-integer elements
+test(non_integer_elements) :-
+    cartesian3(['apple', 'banana'], ['red', 'green'], ['small', 'large'], Result),
+    Expected = [
+        ['apple', 'red', 'small'], ['apple', 'red', 'large'],
+        ['apple', 'green', 'small'], ['apple', 'green', 'large'],
+        ['banana', 'red', 'small'], ['banana', 'red', 'large'],
+        ['banana', 'green', 'small'], ['banana', 'green', 'large']
+    ],
+    assertion(Result == Expected),
+    !.
+
+
 :- end_tests(order_set_and_cartesian).

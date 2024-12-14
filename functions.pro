@@ -184,19 +184,44 @@ pair_with_all(_, [], []).
 pair_with_all(A, [B|Bs], [[A,B]|Paired]) :-
     pair_with_all(A, Bs, Paired).
 
-
+% Older, less efficient implementations:
 cartesian(A,B,Cart):-
              findall([X,Y],(member(X,A),member(Y,B)),L),
              list_to_set(L,Cart),!.
  
-cartesian(A,Cart):- cartesian(A,A,Cart).
- 
-cartesian3(A,B,C,Cart):-
-             findall([X,Y,Z],(member(X,A),member(Y,B),member(Z,C)),L),
-             list_to_set(L,Cart),!.
+cartesian(A,Cart):- cartesian_product(A,A,Cart).
+
+
+% Recursive definition to compute cartesian product of three lists
+cartesian_product3([], _, _, []).
+cartesian_product3([A|As], B, C, Cart) :-
+    pair_with_all_bc(A, B, C, PairedWithA),
+    cartesian_product3(As, B, C, RestCart),
+    append(PairedWithA, RestCart, Cart).
+
+% Pair element A with each element in B and C
+pair_with_all_bc(_, [], _, []).
+pair_with_all_bc(A, [B|Bs], C, PairedWithA) :-
+    pair_with_all_c(A, B, C, PairedWithAB),
+    pair_with_all_bc(A, Bs, C, RestPairs),
+    append(PairedWithAB, RestPairs, PairedWithA).
+
+% Pair elements A and B with each element in C
+pair_with_all_c(_, _, [], []).
+pair_with_all_c(A, B, [C|Cs], [[A,B,C]|Rest]) :-
+    pair_with_all_c(A, B, Cs, Rest).
+
+
+% Older implementation:
+% cartesian3(A,B,C,Cart):-
+%              findall([X,Y,Z],(member(X,A),member(Y,B),member(Z,C)),L),
+%              list_to_set(L,Cart),!.
+
+% Cartesian product of three sets
+cartesian3(A, B, C, Cart) :-
+    cartesian_product3(A, B, C, Cart).
+
 cartesian3(A,Cart) :- cartesian3(A,A,A,Cart).
-
-
 
 
 relation(Dom,Rng,R) :- cartesian(Dom,Rng,Cart), powerset(Cart,P), member(R,P).
