@@ -1,3 +1,8 @@
 *.svg
 *.dot
 book/*
+*.pdf
+*.mscz
+*.xml
+*.mid
+

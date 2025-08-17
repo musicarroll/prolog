@@ -28,6 +28,19 @@ melintersect([M, X], [N, X], [R, X]) :-
     ; M > 0, N = 0 -> R is min(M, N), !
     ; M > 0, N > 0 -> R is min(M, N)
     ).
+% melintersect_alt/3: Alternative intersection operation
+melintersect_alt([M, X], [N, X], [R, X]) :-
+    ( M < 0, N < 0 -> R is max(M, N), !
+    ; M < 0, N = 0 -> R is max(M, N), !
+    ; M < 0, N > 0 -> R is M + N, ! % Use sum for mixed cases
+    ; M = 0, N < 0 -> R is max(M, N), !
+    ; M = 0, N = 0 -> R is 0, !
+    ; M = 0, N > 0 -> R is min(M, N), !
+    ; M > 0, N < 0 -> R is M + N, ! % Use sum for mixed cases
+    ; M > 0, N = 0 -> R is min(M, N), !
+    ; M > 0, N > 0 -> R is min(M, N)
+    ).
+
 
 % melunion/3: Union operation
 melunion([M, X], [N, X], [R, X]) :-
@@ -38,6 +51,19 @@ melunion([M, X], [N, X], [R, X]) :-
     ; M = 0, N = 0 -> R is 0, !
     ; M = 0, N > 0 -> R is max(M, N), !
     ; M > 0, N < 0 -> R is max(M, N), !
+    ; M > 0, N = 0 -> R is max(M, N), !
+    ; M > 0, N > 0 -> R is max(M, N)
+    ).
+
+% melunion_alt/3: Alternative union operation
+melunion_alt([M, X], [N, X], [R, X]) :-
+    ( M < 0, N < 0 -> R is min(M, N), !
+    ; M < 0, N = 0 -> R is min(M, N), !
+    ; M < 0, N > 0 -> R is M + N, !
+    ; M = 0, N < 0 -> R is min(M, N), !
+    ; M = 0, N = 0 -> R is 0, !
+    ; M = 0, N > 0 -> R is max(M, N), !
+    ; M > 0, N < 0 -> R is M + N, !
     ; M > 0, N = 0 -> R is max(M, N), !
     ; M > 0, N > 0 -> R is max(M, N)
     ).
@@ -75,34 +101,6 @@ melsymmetric_difference([M, X], [N, X], [R, X]) :-
     melrelative_complement([M, X], [N, X], [R1, X]),  % A \ B
     melrelative_complement([N, X], [M, X], [R2, X]),  % B \ A
     melunion([R1, X], [R2, X], [R, X]), !.  % (A \ B) ∪ (B \ A), enforce determinism
-
-
-
-% melintersect_alt/3: Alternative intersection operation
-melintersect_alt([M, X], [N, X], [R, X]) :-
-    ( M < 0, N < 0 -> R is max(M, N), !
-    ; M < 0, N = 0 -> R is max(M, N), !
-    ; M < 0, N > 0 -> R is M + N, ! % Use sum for mixed cases
-    ; M = 0, N < 0 -> R is max(M, N), !
-    ; M = 0, N = 0 -> R is 0, !
-    ; M = 0, N > 0 -> R is min(M, N), !
-    ; M > 0, N < 0 -> R is M + N, ! % Use sum for mixed cases
-    ; M > 0, N = 0 -> R is min(M, N), !
-    ; M > 0, N > 0 -> R is min(M, N)
-    ).
-
-% melunion_alt/3: Alternative union operation
-melunion_alt([M, X], [N, X], [R, X]) :-
-    ( M < 0, N < 0 -> R is min(M, N), !
-    ; M < 0, N = 0 -> R is min(M, N), !
-    ; M < 0, N > 0 -> R is M + N, !
-    ; M = 0, N < 0 -> R is min(M, N), !
-    ; M = 0, N = 0 -> R is 0, !
-    ; M = 0, N > 0 -> R is max(M, N), !
-    ; M > 0, N < 0 -> R is M + N, !
-    ; M > 0, N = 0 -> R is max(M, N), !
-    ; M > 0, N > 0 -> R is max(M, N)
-    ).
 
 % melrelative_complement_alt/3: Alternative relative complement
 melrelative_complement_alt([M, X], [N, X], [R, X]) :-

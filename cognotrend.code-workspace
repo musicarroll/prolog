@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../python/cognotrend/cogno_website/cognotrend"
+		},
+		{
+			"path": "../../python/wordwalk/website"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}
