@@ -18,6 +18,7 @@ test(includes_empty_set, [true(Member == [])]) :-
     member(Member, PowerSet),
     !.
 
+% test/1 - defines the test predicate.
 test(includes_full_set) :-
         Set = [a, b, c],
         powerset(Set, PowerSet),
@@ -26,6 +27,7 @@ test(includes_full_set) :-
        
 test(correct_number_of_subsets, [true(Length == 8)]) :-
     functions:powerset([a, b, c], PowerSet),
+% length/2 - defines the length predicate.
     length(PowerSet, Length).
 
 :- end_tests(powerset).
