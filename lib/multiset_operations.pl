@@ -3,22 +3,19 @@
     mset_normalize/2,            % Normalizes a partial mset to a full set
     mset_intersect/3,            % Computes the intersection of two multisets
     mset_union/3,                % Computes the union of two multisets
-    mset_intersect_alt/3,        % Computes the alt intersection of two multisets
-    mset_union_alt/3,            % Computes alt the union of two multisets
-    mset_complement_with_max/3,
-    melcomplement_list/2,        % Computes the complement of a multiset
-    mset_relative_complement/3,  % Computes the relative complement of two multisets
-    mset_symmetric_difference/3, % Computes the symmetric difference of two multisets
-    mset_relative_complement_alt/3, % Computes the alt relative complement of two multisets
-    mset_symmetric_difference/3, % Computes the alt symmetric difference of two multisets
-    mset_symmetric_difference_alt/3,
-    mset_relative_complement_with_max/4,
-    mset_symmetric_difference_with_max/4,
-    mset_subset/2,                % Include mset_subset/2 for completeness
-    mset_subset_alt/2,                % Include mset_subset/2 for completeness
-    all_msubsets/2,                % Add all_msubsets/2 to the export list
-    all_msubsets_alt/2,
-    generate_candidate_alt/2
+    mset_intersect_alt/3,        % Alternative intersection of two multisets
+    mset_union_alt/3,            % Alternative union of two multisets
+    mset_complement_with_max/3,  % Complement relative to a maximum multiplicity
+    melcomplement_list/2,        % Complement each element of a multiset
+    mset_relative_complement/3,  % Relative complement of two multisets
+    mset_symmetric_difference/3, % Symmetric difference of two multisets
+    mset_relative_complement_alt/3, % Alternative relative complement
+    mset_symmetric_difference_alt/3, % Alternative symmetric difference
+    mset_relative_complement_with_max/4, % Relative complement with max bound
+    mset_symmetric_difference_with_max/4, % Symmetric difference with max bound
+    mset_subset/2,               % Subset relation using standard intersection
+    mset_subset_alt/2,           % Subset relation using alternative intersection
+    all_msubsets/2               % Generate all multiset subsets
 ]).
 
 :- use_module(universe, [u/1]).
@@ -119,10 +116,9 @@ mset_symmetric_difference_alt(MSet1, MSet2, Result) :-
 
 % mset_subset/2: True if A is a subset of B
 mset_subset(A, B) :-
-    mset_normalize(A, FullA),  % Normalize A to full set
-    mset_normalize(B, FullB),  % Normalize B to full set
-    mset_intersect(FullA, FullB, Intersection),  % Compute A ∩ B
-    FullA == Intersection.  % A is a subset of B if A ∩ B = A
+    mset_normalize(A, FullA),
+    mset_normalize(B, FullB),
+    mset_intersect(FullA, FullB, FullA).
 
 % all_msubsets/2: Generates all msubsets of a given multiset.
 all_msubsets(ParentSet, Subsets) :-
@@ -138,68 +134,11 @@ generate_subset([[M, X] | Rest], [[NewM, X] | Subset]) :-
     ; M < 0 -> between(M, 0, NewM)),         % For negative multiplicities
     generate_subset(Rest, Subset).
 
-% mset_subset_alt/2: True if A is a subset of B using alternative intersection
-% mset_subset_alt(A, B) :-
-%     mset_normalize(A, FullA),  % Normalize A to full set
-%     mset_normalize(B, FullB),  % Normalize B to full set
-%     mset_intersect_alt(FullA, FullB, Intersection),  % Compute A ∩ B using alternative intersection
-%     FullA == Intersection.  % A is a subset of B if A ∩ B = A
-% mset_subset_alt(A, B) :-
-%     mset_normalize(A, FullA),  % Normalize A to full set
-%     mset_normalize(B, FullB),  % Normalize B to full set
-%     mset_intersect_alt(FullA, FullB, Intersection),  % Compute A ∩ B
-%     mset_normalize(Intersection, FullIntersection),  % Normalize the intersection
-%     FullA == FullIntersection.  % A is a subset of B if A ∩ B = A
 mset_subset_alt(A, B) :-
-    mset_normalize(A, FullA),  % Normalize A to full set
-    mset_normalize(B, FullB),  % Normalize B to full set
-    mset_intersect_alt(FullA, FullB, Intersection),  % Compute A ∩ B
-    Intersection == FullA.  % A is a subset of B if A ∩ B = A
-            
-% generate_candidate_alt/2: Generates a candidate subset based on normalized ParentSet
-% generate_candidate_alt(ParentSet, Candidate) :-
-%     findall([M, X], (
-%         member([N, X], ParentSet),  % For each element in ParentSet
-%         (N > 0 -> between(0, N, M); % Generate multiplicities 0 to N for positive N
-%          N < 0 -> between(N, 0, M); % Generate multiplicities N to 0 for negative N
-%          M = 0)                     % If N = 0, M is always 0
-%     ), Candidate).
+    mset_normalize(A, FullA),
+    mset_normalize(B, FullB),
+    mset_intersect_alt(FullA, FullB, Intersection),
+    Intersection == FullA.
 
-% generate_candidate_alt(ParentSet, Candidate) :-
-%     findall([M, X], (
-%         member([N, X], ParentSet),
-%         (N > 0 -> between(0, N, M);
-%             N < 0 -> between(N, 0, M);
-%             M = 0)  % Handle zero multiplicities
-%     ), Candidate),
-%     mset_normalize(Candidate, Candidate).  % Normalize the generated candidate
-    
-generate_candidate_alt(ParentSet, Candidate) :-
-    findall([M, X], (
-        member([N, X], ParentSet),
-        (N > 0 -> between(0, N, M);
-            N < 0 -> between(N, 0, M);
-            M = 0)  % Handle zero multiplicities
-    ), Candidate).
-
-generate_candidate_alt_normalized(ParentSet, Candidate) :-
-    generate_candidate_alt(ParentSet, RawCandidate),
-    mset_normalize(RawCandidate, Candidate).
-
-% all_msubsets_alt/2: Generates all alternative subsets of a given multiset
-% all_msubsets_alt(ParentSet, AllSubsets) :-
-%     mset_normalize(ParentSet, NormalizedParent),  % Normalize parent set
-%     findall(
-%         Subset,
-%         (generate_candidate_alt(NormalizedParent, Subset), mset_subset_alt(Subset, NormalizedParent)),
-%         AllSubsets
-%     ).
-
-all_msubsets_alt(ParentSet, AllSubsets) :-
-    mset_normalize(ParentSet, NormalizedParent),  % Normalize parent set
-    findall(
-        Candidate,
-        (generate_candidate_alt_normalized(NormalizedParent, Candidate),
-            mset_subset_alt(Candidate, NormalizedParent)),  % Validate subsets
-        AllSubsets
-    ).
+% Alternative subset generation utilities removed.  They duplicated
+% all_msubsets/2 and produced incorrect results.
