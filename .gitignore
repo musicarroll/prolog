@@ -1,3 +1,5 @@
+dot/*
+svg/*
 *.svg
 *.dot
 book/*
