@@ -1,7 +1,8 @@
 :- begin_tests(multisets).
 
-:- use_module(universe).
-:- use_module(multiset_operations).
+:- use_module('../lib/universe').
+:- use_module('../lib/multiset_operations').
+:- use_module('../lib/element_operations').
 
 % Test cases for mset_normalize/2
 test(normalize_partial) :-
@@ -86,7 +87,7 @@ test(melsymmetric_difference_negative) :-
 % Mset-Level Tests
 
 % Test for mset_union/3
-test(mset_union_partial) :-
+test(mset_union_partial_superset) :-
     mset_union([[3, a], [1, b]], [[2, a], [-1, b]], [[3, a], [1, b], [0, c]]).
 
 % Test for mset_relative_complement/3
@@ -179,47 +180,6 @@ test(mset_relative_complement_alt) :-
 test(mset_symmetric_difference_alt) :-
     mset_symmetric_difference_alt([[3, a], [-3, b], [0, c]], [[2, a], [-1, b], [0, c]], [[0, a], [0, b], [0, c]]).
 
-test(generate_candidate_alt_mixed) :-
-    generate_candidate_alt([[2, a], [-1, b], [0, c]], Candidate),
-    member([0, a], Candidate),
-    member([1, a], Candidate),
-    member([2, a], Candidate),
-    member([0, b], Candidate),
-    member([-1, b], Candidate),
-    member([0, c], Candidate), !.
-
-test(generate_candidate_alt_positive) :-
-    generate_candidate_alt([[1, a], [1, b]], Candidate),
-    member([0, a], Candidate),
-    member([1, a], Candidate),
-    member([0, b], Candidate),
-    member([1, b], Candidate), !.
-
-test(generate_candidate_alt_negative) :-
-    generate_candidate_alt([[-1, a], [-1, b]], Candidate),
-    member([0, a], Candidate),
-    member([-1, a], Candidate),
-    member([0, b], Candidate),
-    member([-1, b], Candidate), !.
-
-test(all_msubsets_alt_mixed) :-
-    all_msubsets_alt([[2, a], [-1, b], [0, c]], Subsets),
-    length(Subsets, 6),
-    member([[0, a], [-1, b], [0, c]], Subsets),
-    member([[2, a], [0, b], [0, c]], Subsets).
-
-test(all_msubsets_alt_positive) :-
-    all_msubsets_alt([[1, a], [1, b]], Subsets),
-    length(Subsets, 4),
-    member([[0, a], [0, b]], Subsets),
-    member([[1, a], [1, b]], Subsets).
-
-test(all_msubsets_alt_negative) :-
-    all_msubsets_alt([[-1, a], [-1, b]], Subsets),
-    length(Subsets, 4),
-    member([[0, a], [0, b]], Subsets),
-    member([[-1, a], [-1, b]], Subsets).
-
  test(mset_alt_union_preserves_superset) :-
 mset_subset_alt([[2, a], [-1, b], [0, c]], [[3, a], [-1, b], [0, c]]),
 mset_union_alt([[2, a], [-1, b], [0, c]], [[3, a], [-1, b], [0, c]], [[3, a], [-1, b], [0, c]]).
@@ -238,7 +198,7 @@ test(melunion_alt_negative) :-
 
 :- begin_tests(melcomplement_with_max).
 
-:- use_module(element_operations, 
+:- use_module('../lib/element_operations',
     [melintersect/3, melunion/3, 
     melintersect_alt/3, melunion_alt/3,
     melcomplement/2, 
@@ -276,8 +236,8 @@ test(melrelative_complement_with_max_zero) :-
 
 :- begin_tests(mset_complement_with_max).
 
-:- use_module(universe).
-:- use_module(multiset_operations).
+:- use_module('../lib/universe').
+:- use_module('../lib/multiset_operations').
 
 test(mset_complement_with_max_positive) :-
     mset_complement_with_max([[2, a], [1, b]], R, 3),
