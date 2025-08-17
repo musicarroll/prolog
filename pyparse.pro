@@ -12,7 +12,9 @@ value --> [Value], { member(Value, [0, 1, 2]) }.
 integer --> [X], { integer(X) }.
 
 
+% parse/1 - defines the parse predicate.
 parse(Tokens) :-
+% phrase/2 - defines the phrase predicate.
     phrase(program, Tokens).
 % Sample query
 % parse(["X", "=", "10", ";", "if", "X", "==", "Y", ":", "Y", "=", "20", ";", "elif", "X", "==", "Z", ":", "Z", "=", "30", ";", "else", ":", "Y", "=", "40", ";", "endif"], []).

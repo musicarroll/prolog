@@ -16,32 +16,43 @@ octonion_mult([
 ]).
 
 % Generate terms with negatives
+% negate_term/2 - defines the negate term predicate.
 negate_term('1', '-1').
+% negate_term/2 - defines the negate term predicate.
 negate_term('-1', '1').
+% negate_term/2 - defines the negate term predicate.
 negate_term(Term, NegTerm) :-
     atom(Term),
     atom_concat('-', Rest, Term),
+% atom_concat/3 - defines the atom concat predicate.
     atom_concat('', Rest, NegTerm).
+% negate_term/2 - defines the negate term predicate.
 negate_term(Term, NegTerm) :-
     atom(Term),
     \+ atom_concat('-', _, Term),
+% atom_concat/3 - defines the atom concat predicate.
     atom_concat('-', Term, NegTerm).
 
 % Generate terms with negatives, avoiding duplicates
+% generate_negatives/2 - defines the generate negatives predicate.
 generate_negatives([], []).
+% generate_negatives/15 - defines the generate negatives predicate.
 generate_negatives([[[A,B],C]|Rest], [[[A,B],C], [[NegA,B],NegC], [[A,NegB],NegC], [[NegA,NegB],C]|NegRest]) :-
     negate_term(A, NegA),
     negate_term(B, NegB),
     negate_term(C, NegC),
     % Ensure that A and B are not both negated to avoid duplicates
     (A \= NegA; B \= NegB),
+% generate_negatives/2 - defines the generate negatives predicate.
     generate_negatives(Rest, NegRest).
 
 
 % Get the complete table including terms with negatives, ensuring uniqueness
+% complete_octonion_table/1 - defines the complete octonion table predicate.
 complete_octonion_table(UniqueTable) :-
     octonion_mult(OriginalTable),
     generate_negatives(OriginalTable, Negatives),
     append(OriginalTable, Negatives, CompleteTable),
+% list_to_set/2 - defines the list to set predicate.
     list_to_set(CompleteTable, UniqueTable).
 

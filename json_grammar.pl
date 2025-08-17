@@ -22,6 +22,7 @@ json_pairs_rest([]) --> [].
 % Parse a JSON value (currently simplified to only accept strings or nested objects).
 json_value(Value) --> 
     json_string(Value) ;
+% json_object/1 - defines the json object predicate.
     json_object(Value).
 
 % A simple way to parse strings enclosed in quotes.
@@ -39,6 +40,7 @@ string_chars([]) --> [].
 chars([Char|Chars]) -->
     [Char],
     { \+ member(Char, ['\"']) }, % Stop at the closing quote.
+% chars/1 - defines the chars predicate.
     chars(Chars).
 chars([]) --> [].
 
