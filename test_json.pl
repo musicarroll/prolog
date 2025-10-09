@@ -35,8 +35,9 @@ test(empty_object) :-
 % test/1 - defines the test predicate.
 test(spaces_around_colon_and_commas) :-
     string_codes("{\"name\" : \"John\", \"age\" : \"30\", \"city\" : \"New York\"}", Codes),
-    phrase(json_object(JSON), Codes),
+    once(phrase(json_object(JSON), Codes)),
 % assertion/3 - defines the assertion predicate.
-    assertion(JSON == [name-'John', age-'30', city-'New York']).
+    assertion(JSON == [name-'John', age-'30', city-'New York']),
+    !.
 
 :- end_tests(json_parser).

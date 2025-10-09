@@ -15,7 +15,11 @@
     mset_symmetric_difference_with_max/4,
     mset_subset/2,
     mset_subset_alt/2,
-    all_msubsets/2
+    msubset/2,
+    all_msubsets/2,
+    all_msubsets_with_max/3,
+    all_msubsets_on_support/2,
+    power_msubsets/2
 ]).
 
 :- use_module(universe, [u/1]).
@@ -104,6 +108,9 @@ mset_subset(A, B) :-
     mset_normalize(B, FullB),
     mset_intersect(FullA, FullB, FullA).
 
+% Alias using the terminology from the paper
+msubset(A, B) :- mset_subset(A, B).
+
 all_msubsets(ParentSet, Subsets) :-
     findall(Subset, generate_subset(ParentSet, Subset), Subsets).
 
@@ -118,3 +125,43 @@ mset_subset_alt(A, B) :-
     mset_normalize(B, FullB),
     mset_intersect_alt(FullA, FullB, Intersection),
     Intersection == FullA.
+
+% --- Signed msubset enumeration with explicit maximum bound ---
+
+% all_msubsets_with_max(+Parent, +Max, -Subsets)
+% Generates all A such that A ⊑ Parent under the signed order and
+% 0 <= multiplicity <= Max for every element. For x ∈ U+ choose 0..P(x),
+% for x ∈ U- choose P(x)..Max.
+all_msubsets_with_max(Parent, M, Subsets) :-
+    integer(M), M >= 0,
+    mset_normalize(Parent, NormP),
+    findall(Subset, generate_subset_signed(NormP, M, Subset), Subsets).
+
+generate_subset_signed([], _, []).
+generate_subset_signed([[Mp, X] | Rest], M, [[NewM, X] | Subset]) :-
+    ( is_positive_atom(X) -> Min is 0, Max is min(Mp, M), between(Min, Max, NewM)
+    ; is_negative_atom(X) -> between(Mp, M, NewM)
+    ),
+    generate_subset_signed(Rest, M, Subset).
+
+is_positive_atom(X) :- atom(X), atom_concat(_, '+', X).
+is_negative_atom(X) :- atom(X), atom_concat(_, '-', X).
+
+% --- Finite enumeration on support ---
+% all_msubsets_on_support(+Parent, -Subsets)
+% Enumerates A such that A ⪯ Parent, fixing negatives to Parent on its support
+% and forcing zeros off-support. This yields a finite family useful as a
+% “power mset” analogue under the signed model.
+all_msubsets_on_support(Parent, Subsets) :-
+    mset_normalize(Parent, NormP),
+    findall(Subset, gen_on_support(NormP, Subset), Subsets).
+
+gen_on_support([], []).
+gen_on_support([[Mp, X] | Rest], [[NewM, X] | Subset]) :-
+    ( is_positive_atom(X) -> ( Mp > 0 -> between(0, Mp, NewM) ; NewM = 0 )
+    ; is_negative_atom(X) -> ( Mp > 0 -> NewM = Mp ; NewM = 0 )
+    ),
+    gen_on_support(Rest, Subset).
+
+% Canonical API for the on-support finite family (Power Multiset)
+power_msubsets(Parent, Subsets) :- all_msubsets_on_support(Parent, Subsets).

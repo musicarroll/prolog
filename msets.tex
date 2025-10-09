@@ -207,6 +207,58 @@
 	\]
 \end{example}
 
+\begin{definition}[msubset / multisubset]
+Let \(A, B\) be signed multisets over the same universe \(U = U^+ \cup U^-\). We write \(A \preceq B\) (\emph{msubset, or multisubset}) iff
+\[
+\forall x \in U^+\!:\; A(x) \le B(x) \quad\text{and}\quad \forall x \in U^-\!:\; A(x) \ge B(x).
+\]
+Equivalently, \(A \preceq B\) iff \(A = A \cap B\) under the signed intersection defined above.
+\end{definition}
+
+\begin{example}[Checking msubset]
+Let \(A = \{1a,\,3\bar{b}\}\) and \(B = \{2a,\,1\bar{b}\}\). Then
+\(A \preceq B\) since \(1 \le 2\) on \(a \in U^+\) and \(3 \ge 1\) on \(\bar{b} \in U^-\).
+By contrast, \(\{3a\} \not\preceq \{2a\}\) and \(\{0\,\bar{b}\} \not\preceq \{1\,\bar{b}\}\).
+\end{example}
+
+\begin{example}[Enumerating multisubsets with a bound]
+Fix a global bound \(M\in\Nat\). For \(P = \{2a,\,1\bar{b}\}\) and \(M=1\), the multisubsets \(A\preceq P\) satisfy
+\(A(a)\in\{0,1\}\), \(A(\bar{b})=1\), and all other positives are \(0\) while other negatives lie in \(\{0,1\}\). There are \(8\) such $m$\,-subsets, e.g.,
+\(\{1a,\,1\bar{b}\}\) and \(\{1\bar{b},\,1\bar{c}\}\).
+\end{example}
+
+\begin{remark}[Why a bound is needed for enumeration]
+Multiplicities are always non\,--negative integers. However, the msubset order is \emph{antitone} on \(U^-\): \(A \preceq B\) requires \(A(x) \ge B(x)\) for \(x\in U^-\). Thus, if \(B(x)>0\) for some \(x\in U^-\), then any \(A\) with \(A(x)\in\{B(x), B(x)+1, B(x)+2,\dots\}\) still satisfies \(A \preceq B\). Without an explicit global cap \(M\), there are infinitely many such multisubsets. In contrast, on \(U^+\) the order is monotone and \(0\) acts as a natural lower bound for enumeration.
+\end{remark}
+
+\section*{Power Multiset (On\,-Support)}
+
+\begin{definition}[Power Multiset on Support]
+Given a signed multiset \(P\) over \(U = U^+ \cup U^-\), the \textbf{power multiset} \(\mathcal{P}_\mathrm{ms}(P)\) is the finite family of multisubsets \(A\preceq P\) defined by
+\[
+\begin{aligned}
+&A(x) \in \{0,\dots,P(x)\} && \text{for } x\in U^+,\\
+&A(x) = P(x) && \text{for } x\in U^- \text{ with } P(x)>0,\\
+&A(x) = 0 && \text{for all other } x\in U.
+\end{aligned}
+\]
+In words: positives vary from zero up to the parent’s multiplicity; negatives on the parent’s support are fixed to the parent; off\,-support entries are zero.
+\end{definition}
+
+\begin{proposition}[Size of the Power Multiset]
+Let \(\mathrm{supp}^+(P)=\{x\in U^+\mid P(x)>0\}\). Then
+\[
+\big\lvert \mathcal{P}_\mathrm{ms}(P) \big\rvert = \prod_{x\in \mathrm{supp}^+(P)} \big( P(x) + 1 \big).
+\]
+\end{proposition}
+
+\begin{example}[Power Multiset Example]
+For \(P = \{2a,\,1\bar{b}\}\), the positive support is \(\{a\}\) so
+\(\lvert \mathcal{P}_\mathrm{ms}(P) \rvert = 2+1 = 3\). The family is
+\(\{\,0a,\,1\bar{b}\,\},\ \{\,1a,\,1\bar{b}\,\},\ \{\,2a,\,1\bar{b}\,\}\),
+with all other entries zero.
+\end{example}
+
 \section*{Lattice Properties and De Morgan's Laws in Signed Multisets}
 
 \begin{definition}
@@ -232,10 +284,10 @@
 \end{definition}
 
 \begin{theorem}[De Morgan's Laws for Signed Multisets]
-	For any signed multisets \(A, B\),
-	\[
-	\neg (A \cup B) = \neg A \cap \neg B, \qquad \neg (A \cap B) = \neg A \cup \neg B.
-	\]
+    For any signed multisets \(A, B\),
+    \[
+    \neg (A \cup B) = \neg A \cap \neg B, \qquad \neg (A \cap B) = \neg A \cup \neg B.
+    \]
 \end{theorem}
 
 \begin{proof}
@@ -261,6 +313,47 @@
 		&= (\neg A \cup \neg B)(x).
 	\end{align*}
 \end{proof}
+
+\section*{Prolog Encoding and Worked Examples}
+
+\begin{example}[Prolog Symbols]
+In the accompanying SWI\,--Prolog code, we encode polarity in atoms: \(a \in U^{+}\) as \verb|'a+'| and its opposite \(\bar{a} \in U^{-}\) as \verb|'a-'|. The universe order used in tests is
+\[
+\big[\,'a+',\,'b+',\,'c+',\,'a-',\,'b-',\,'c-'\,\big].
+\]
+\end{example}
+
+\begin{example}[Normalization]
+Partial vectors are expanded to the full order with zeros for missing entries:
+\begin{verbatim}
+?- mset_normalize([[3,'a+']], Full).
+Full = [[3,'a+'], [0,'b+'], [0,'c+'], [0,'a-'], [0,'b-'], [0,'c-']].
+\end{verbatim}
+\end{example}
+
+\begin{example}[Intersection]
+Using the polarity-aware rules (min on \(U^{+}\), max on \(U^{-}\)):
+\begin{verbatim}
+?- mset_intersect([[2,'a+'], [1,'b-']], [[1,'a+'], [3,'b-']], R).
+R = [[1,'a+'], [0,'b+'], [0,'c+'], [0,'a-'], [3,'b-'], [0,'c-']].
+\end{verbatim}
+\end{example}
+
+\begin{example}[Union]
+Using max on \(U^{+}\) and min on \(U^{-}\):
+\begin{verbatim}
+?- mset_union([[2,'a+'], [1,'b-']], [[1,'a+'], [3,'b-']], R).
+R = [[2,'a+'], [0,'b+'], [0,'c+'], [0,'a-'], [1,'b-'], [0,'c-']].
+\end{verbatim}
+\end{example}
+
+\begin{example}[Complement]
+Complement swaps polarity preserving multiplicity:
+\begin{verbatim}
+?- melcomplement([3,'a+'], R).
+R = [3,'a-'].
+\end{verbatim}
+\end{example}
 
 \begin{theorem}[Lattice Structure]
 	The set of signed multisets over a fixed universe \(U = U^+ \cup U^-\), ordered by the pointwise ordering:
