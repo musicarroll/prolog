@@ -7,4 +7,7 @@ book/*
 *.mscz
 *.xml
 *.mid
+*.gz
+*.aux
+*.log
 

@@ -1,0 +1,304 @@
+\documentclass{article}
+\usepackage{amsmath, amssymb, latexsym, amsthm}
+\usepackage{graphicx}
+\usepackage{verbatim}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{axiom}{Axiom}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\theoremstyle{remark}
+\newtheorem*{notation}{Notation}
+\newtheorem*{remark}{Remark}
+\newtheorem{example}{Example}
+
+% New Commands:
+\newcommand{\conj}[2]{#2#1#2^{-1}}
+\newcommand{\Germ}[1]{\mathfrak{#1}}
+\newcommand{\struct}[2]{\Germ{#1}=<#1; #2>}
+\newcommand{\tuple}[1]{(#1_1,\ldots,#1_{n_i})}
+\newcommand{\ntuple}[1]{(#1_1,\ldots,#1_{n})}
+\newcommand{\funcntuple}[2]{\left(#1\left[#2_{1}\right],\ldots,#1\left[#2_{n}\right]\right)}
+\newcommand{\irange}[1]{1\leq #1 \leq n}
+\newcommand{\cart}[2]{#1_1\times \cdots \times #1_{#2}}
+\newcommand{\dom}[1]{\text{Dom}(#1)}
+\newcommand{\domi}[2]{\text{Dom}_{#2}(#1)}
+\newcommand{\rng}[1]{\text{Rng}(#1)}
+\newcommand{\rs}{r,s\subseteq A\times B}
+\newcommand{\stdmodel}{SU(4)\times SU(2)\times U(1)}
+\newcommand{\VT}[1]{\ensuremath{{V_{T#1}}}}
+\DeclareRobustCommand{\stirling}{\genfrac\{\}{0pt}{}}
+
+\newcommand{\errop}[1]{\delta#1=\hat{#1}-#1}
+\newcommand{\h}{\mathcal{H}}
+\newcommand{\s}{\mathcal{S}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\J}{\mathcal{J}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\ltwo}{\textit{l}^2}
+\newcommand{\Ltwo}{\mathcal{L}^2}
+\newcommand{\Quat}{\mathbb{H}}
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\Int}{\mathbb{Z}}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand{\Complex}{\mathbb{C}}
+\newcommand{\Rational}{\mathbb{Q}}
+\newcommand{\Rat}{\mathbb{Q}}
+\newcommand{\Field}{\mathbb{K}}
+\newcommand{\RPlus}{\Real^{+}}
+\newcommand{\Borel}{\mathcal{B}}
+\newcommand{\Polar}{\mathcal{P}_{\s}}
+\newcommand{\Poly}{\mathcal{P}(E)}
+\newcommand{\EssD}{\mathcal{D}}
+\newcommand{\Lom}{\mathcal{L}}
+\newcommand{\States}{\mathcal{T}}
+\newcommand{\id}{\text{id}}
+\newcommand{\Id}{\text{Id}}
+\newcommand{\eval}{\text{eval}}
+\newcommand{\Cinf}{C^\infty[a,b]}
+\newcommand{\CzT}{C^\infty[0,T]}
+\newcommand{\Diff}{\text{Diff}}
+\newcommand{\tfunc}{C_c^\infty}
+\newcommand{\tfuncstar}{\left[\tfunc\right]^*}
+\newcommand{\cond}{\text{cond}}
+\newcommand{\prob}{\text{prob}}
+\newcommand{\card}[1]{\abs{#1}}
+\newcommand{\GL}[2]{\text{Gl}(#1,#2)}
+\newcommand{\glnr}{\GL{n}{\Real}}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\setst}[2]{\left\{#1\;|\;#2\right\}}
+\newcommand{\st}{\text{ such that }}
+\newcommand{\mst}{:\;}
+
+\newcommand{\naryops}[1]{#1^{#1^n}}
+\newcommand{\aryops}[2]{#1^{#1^{#2}}}
+\newcommand{\haddn}[2]{\exp\left[\ln(#1)\oplus_{n}\ln(#2)\right]}
+\newcommand{\hadd}[2]{\exp\left[\ln(#1)\oplus_{n-1}\ln(#2)\right]}
+\newcommand{\hadddef}{x\oplus_n y:=\hadd{x}{y}}
+\newcommand{\haid}[1]{0_{#1}}
+\newcommand{\hmid}[1]{1_{#1}}
+\newcommand{\hmult}[2]{\exp\left[\ln\left(#1\right)\ln\left(#2\right)\right]}
+\newcommand{\hsuc}[3]{S^{(#1)}_{#2}\left(#3\right)}
+\newcommand{\hsucdef}[3]{\hsuc{1}{m}{x}:=x\oplus_m \haid{m+1}}
+\newcommand{\hfac}[1]{!_{#1}}
+\newcommand{\hfacdef}[2]{#1\hfac{#2}:=\hsuc{n}{#2}{0_{#2}}\oplus_{#2}\hsuc{n-1}{#2}{0_{#2}}\oplus_{#2}\cdots\oplus_{#2}\hsuc{1}{#2}{0_{#2}}}
+
+\newcommand{\hrealfield}[1]{\left<e^\Real_{#1},\oplus_{#1},\otimes_{#1},
+	\haid{#1},\hmid{#1}  \right>}
+
+\newcommand{\ascend}[1]{\Phi_e\left[#1\right]}
+\newcommand{\descend}[1]{\Phi_l\left[#1\right]}
+\newcommand{\inv}[1]{\text{inv}_{#1}}
+
+\begin{document}
+\title{A New Approach to Multisets}
+\author{Michael L. Carroll}
+\maketitle
+\begin{abstract}
+	Previous attempts to work out a theory of multsets suffer from the defect that finite sets can have infinitely many msubsets.  In this work we provide new definitions of msubset, and mset operations (union, intersection and complementation) that exhibit many desirable properties.
+\end{abstract}
+	
+\section*{Basic Definitions (Revised Framework)}
+
+\begin{definition}
+	Let \( U^{+} \) and \( U^{-} \) be disjoint sets of equal cardinality, and let there be a fixed bijection 
+	\[
+	\phi : U^{+} \to U^{-}, \qquad \text{with inverse } \phi^{-1} : U^{-} \to U^{+},
+	\]
+	such that each \( x \in U^{+} \) has a unique \textbf{opposite element} \( \phi(x) \in U^{-} \).
+	
+	Define the \textbf{universe of discourse} as the disjoint union:
+	\[
+	U := U^{+} \cup U^{-}.
+	\]
+\end{definition}
+
+\begin{definition}[Finite Multiset]
+	A \textbf{finite multiset} (or \textbf{mset}) over \( U \) is a finite collection of pairs 
+	\[
+	A = \{ (m_1,x_1), (m_2,x_2), \dots, (m_k,x_k) \},
+	\]
+	where \( m_i \in \Nat \) and each \( x_i \in U \).  
+	
+	The pair \( (m,x) \) represents that element \( x \) occurs in \( A \) with multiplicity \( m \).  
+	We use the shorthand \( mx \) in place of \( (m,x) \).
+	
+	All multiplicities are non‑negative integers; polarity is encoded by whether \( x \in U^{+} \) or \( x \in U^{-} \).
+\end{definition}
+
+\begin{definition}[Multiplicity Function]
+	For a finite multiset \( A \) over \( U \), define its \textbf{multiplicity function}
+	\[
+	A : U \to \Nat, \qquad A(x) = \text{the multiplicity of } x \text{ in } A.
+	\]
+	Then \( A \) may be identified with this function, having finite support:
+	\[
+	\text{supp}(A) = \{ x \in U \mid A(x) > 0 \}.
+	\]
+\end{definition}
+
+\begin{definition}[Complementation]
+	The \textbf{complement} of a multiset \( A \) is the multiset
+	\[
+	\neg A = \{ (A(x), \phi(x)) \mid x \in \text{supp}(A) \},
+	\]
+	obtained by replacing every element \( x \in U^{+} \) with its opposite \( \phi(x) \in U^{-} \), and vice versa, preserving multiplicities.
+\end{definition}
+
+\begin{example}
+	Let \( U^{+} = \{ a, b, c \} \) and \( U^{-} = \{ \bar{a}, \bar{b}, \bar{c} \} \) with \( \phi(a)=\bar{a} \), etc.  
+	If \( A = \{ 2a, 3\bar{b}, 1c \} \), then
+	\[
+	\neg A = \{ 2\bar{a}, 3b, 1\bar{c} \}.
+	\]
+\end{example}
+
+\begin{definition}[Union and Intersection]
+	Let \( A, B \) be finite multisets over \( U = U^{+}\cup U^{-} \).  
+	Their \textbf{union} and \textbf{intersection} are defined componentwise on multiplicities:
+	
+	\[
+	(A \cup B)(x) =
+	\begin{cases}
+		\max(A(x), B(x)), & x \in U^{+},\\[4pt]
+		\min(A(x), B(x)), & x \in U^{-},
+	\end{cases}
+	\qquad
+	(A \cap B)(x) =
+	\begin{cases}
+		\min(A(x), B(x)), & x \in U^{+},\\[4pt]
+		\max(A(x), B(x)), & x \in U^{-}.
+	\end{cases}
+	\]
+\end{definition}
+
+\begin{example}
+	Let \( U^{+} = \{ a, b \} \), \( U^{-} = \{ \bar{a}, \bar{b} \} \),
+	and define \( A = \{ 2a, 3\bar{b} \} \), \( B = \{ 1a, 4b, 2\bar{b} \} \).  
+	Then
+	\[
+	A \cup B = \{ 2a, 4b, 2\bar{b} \}, \qquad 
+	A \cap B = \{ 1a, 3\bar{b} \}.
+	\]
+\end{example}
+
+\begin{definition}[Relative Complement]
+	For multisets \( A, B \) over \( U \), the \textbf{relative complement} of \( B \) in \( A \) is defined by
+	\[
+	A \setminus B := A \cap \neg B.
+	\]
+\end{definition}
+
+\begin{example}
+	With the same universe as above, let
+	\( A = \{ 3a, 1b \} \) and \( B = \{ 2a, 1\bar{b} \} \).
+	Then
+	\[
+	\neg B = \{ 2\bar{a}, 1b \}, \quad
+	A \setminus B = A \cap \neg B = \{ 1b \}.
+	\]
+\end{example}
+
+\section*{Lattice Properties and De Morgan's Laws in Signed Multisets}
+
+\begin{definition}
+	Let \(U^+\) and \(U^-\) be disjoint sets of equal cardinality, and let each \(x \in U^+\) have a unique opposite \(\bar{x} \in U^-\), and vice versa. Define \(U := U^+ \cup U^-\).
+	
+	A \textbf{signed multiset} (or \textbf{bipolar multiset}) \(A\) over \(U\) is a finite set of pairs:
+	\[
+	A = \{ (m_i, x_i) \}_{i=1}^k, \quad m_i \in \Nat, \; x_i \in U.
+	\]
+	We write these in shorthand as \(m_ix_i\). Each element of \(U\) belongs to exactly one of \(U^+\) or \(U^-\).
+\end{definition}
+
+\begin{definition}
+	Let \(A, B\) be signed multisets over the same universe \(U\). Define the \textbf{union}, \textbf{intersection}, and \textbf{complement} as follows:
+	
+	\begin{itemize}
+		\item \textbf{Union:} For all \(x \in U^+\), \((A \cup B)(x) := \max(A(x), B(x))\). For \(x \in U^-\), \((A \cup B)(x) := \min(A(x), B(x))\).
+		
+		\item \textbf{Intersection:} For all \(x \in U^+\), \((A \cap B)(x) := \min(A(x), B(x))\). For \(x \in U^-\), \((A \cap B)(x) := \max(A(x), B(x))\).
+		
+		\item \textbf{Complement:} \((\neg A)(x) := A(\bar{x})\), where \(\bar{x}\) is the opposite of \(x\).
+	\end{itemize}
+\end{definition}
+
+\begin{theorem}[De Morgan's Laws for Signed Multisets]
+	For any signed multisets \(A, B\),
+	\[
+	\neg (A \cup B) = \neg A \cap \neg B, \qquad \neg (A \cap B) = \neg A \cup \neg B.
+	\]
+\end{theorem}
+
+\begin{proof}
+	Fix \(x \in U\). We distinguish two cases:
+	
+	\textbf{Case 1:} \(x \in U^+\), so \(\bar{x} \in U^-\). Then:
+	\begin{align*}
+		(\neg(A \cup B))(x) &= (A \cup B)(\bar{x}) \\
+		&= \min(A(\bar{x}), B(\bar{x})) &\text{(since } \bar{x} \in U^-\text{)} \\
+		&= \min((\neg A)(x), (\neg B)(x)) &\text{by def. of complement} \\
+		&= (\neg A \cap \neg B)(x).
+	\end{align*}
+	
+	The same argument applies for \(x \in U^-\), using the fact that \(\bar{x} \in U^+\), where max and min are swapped accordingly.
+	
+	\textbf{Therefore,} \(\neg(A \cup B)(x) = (\neg A \cap \neg B)(x)\) for all \(x\).
+	
+	The second identity follows similarly:
+	\begin{align*}
+		(\neg(A \cap B))(x) &= (A \cap B)(\bar{x}) \\
+		&= \max(A(\bar{x}), B(\bar{x})) &\text{if } \bar{x} \in U^- \\
+		&= \max((\neg A)(x), (\neg B)(x)) \\
+		&= (\neg A \cup \neg B)(x).
+	\end{align*}
+\end{proof}
+
+\begin{theorem}[Lattice Structure]
+	The set of signed multisets over a fixed universe \(U = U^+ \cup U^-\), ordered by the pointwise ordering:
+	\[
+	A \leq B \iff A(x) \leq B(x) \text{ for all } x \in U^+, \quad A(x) \geq B(x) \text{ for all } x \in U^-,
+	\]
+	forms a bounded distributive lattice with meet \(\cap\), join \(\cup\), top element \(\top\), and bottom element \(\bot\).
+\end{theorem}
+
+\begin{proof}
+	We verify the lattice axioms:
+	
+	\begin{itemize}
+		\item \textbf{Commutativity:} \(A \cup B = B \cup A\), \(A \cap B = B \cap A\), since max and min are commutative.
+		
+		\item \textbf{Associativity:} \(A \cup (B \cup C) = (A \cup B) \cup C\), etc., follows from associativity of max/min.
+		
+		\item \textbf{Absorption:}
+		\begin{align*}
+			A \cup (A \cap B) &= A, \\
+			A \cap (A \cup B) &= A,
+		\end{align*}
+		because for each \(x \in U^+\), we get:
+		\begin{align*}
+			\max(A(x), \min(A(x), B(x))) = A(x),
+		\end{align*}
+		and for \(x \in U^-\), same holds with min/max swapped.
+		
+		\item \textbf{Distributivity:}
+		\begin{align*}
+			A \cup (B \cap C) &= (A \cup B) \cap (A \cup C), \\
+			A \cap (B \cup C) &= (A \cap B) \cup (A \cap C),
+		\end{align*}
+		follow from distributivity of max/min on \(\Nat\) and \(\min, \max\) duality.
+		
+		\item \textbf{Bounds:} The top element \(\top\) is the multiset with infinite multiplicities over \(U^+\) and 0 over \(U^-\); the bottom \(\bot\) reverses this. For finite universes, we can use large enough finite bounds.
+	\end{itemize}
+\end{proof}
+
+
+\end{document}
