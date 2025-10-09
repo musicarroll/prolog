@@ -3,8 +3,8 @@
 :- module(universe, [u/1, u_plus/1, u_minus/1, opposite/2, melem/1, mmember/2]).
 
 % Define universe sets (disjoint U⁺ and U⁻)
-u_plus(X)  :- member(X, [a+, b+, c+]).
-u_minus(X) :- member(X, [a-, b-, c-]).
+u_plus(X)  :- member(X, ['a+', 'b+', 'c+']).
+u_minus(X) :- member(X, ['a-', 'b-', 'c-']).
 
 u(X) :- u_plus(X); u_minus(X).
 

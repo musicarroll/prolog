@@ -5,7 +5,13 @@
     melunion/3,
     melcomplement/2,
     melrelative_complement/3,
-    melsymmetric_difference/3
+    melsymmetric_difference/3,
+    % Alternate APIs used by multiset_operations
+    melintersect_alt/3,
+    melunion_alt/3,
+    melcomplement_with_max/3,
+    melrelative_complement_alt/3,
+    melsymmetric_difference_alt/3
 ]).
 
 % melintersect/3: Intersection operation for bipolar multisets
@@ -35,6 +41,28 @@ melsymmetric_difference([M, X], [N, X], [R, X]) :-
     melrelative_complement([M, X], [N, X], [D1, X]),
     melrelative_complement([N, X], [M, X], [D2, X]),
     melunion([D1, X], [D2, X], [R, X]).
+
+% --- Alternate and utility variants ---
+
+% Same semantics as primary versions; kept for API compatibility.
+melintersect_alt([M, X], [N, X], [R, X]) :- melintersect([M, X], [N, X], [R, X]).
+melunion_alt([M, X], [N, X], [R, X])    :- melunion([M, X], [N, X], [R, X]).
+
+% Complement with explicit maximum bound M: multiplicity flips wrt M
+% Example: if M is 3 and N is 2, complement multiplicity is 1 on opposite polarity.
+melcomplement_with_max([N, X], [R, Y], M) :-
+    integer(M), M >= 0,
+    R is max(0, M - N),
+    opposite(X, Y).
+
+melrelative_complement_alt([M, X], [N, X], [R, X]) :-
+    melcomplement([N, X], [NComp, _]),
+    melintersect_alt([M, X], [NComp, X], [R, X]).
+
+melsymmetric_difference_alt([M, X], [N, X], [R, X]) :-
+    melrelative_complement_alt([M, X], [N, X], [D1, X]),
+    melrelative_complement_alt([N, X], [M, X], [D2, X]),
+    melunion_alt([D1, X], [D2, X], [R, X]).
 
 % --- Polarity and opposite relation helpers ---
 
