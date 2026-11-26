@@ -1,4 +1,6 @@
 :- use_module(library(solution_sequences)).
+:- use_module(library(random)).
+:- use_module(library(error)).
 :- use_module(musicxml).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -114,6 +116,7 @@ note_to_midi(Note, Midi) :-
 encode_vlq(0, [0]).
 encode_vlq(480, [131,96]).
 encode_vlq(960, [135,64]).
+encode_vlq(1440, [139,32]).
 encode_vlq(1920, [143,0]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -221,19 +224,9 @@ is_note([Name, Acc, Oct]) :-
     note_name(Name),
     accidental(Acc),
     octave(Oct),
-    valid_piano_note(Name, Oct).
-
-% valid_piano_note/2 makes sure the note is actually on a piano:
-%
-% In octave 0, only A and B exist (A0 and B0).
-valid_piano_note(Name, 0) :-
-    member(Name, [a, b]).
-% In octave 8, only C exists (C8).
-valid_piano_note(c, 8).
-% In octaves 1 through 7, all note names are allowed.
-valid_piano_note(_, Oct) :-
-    Oct >= 1,
-    Oct =< 7.
+    note_value([Name, Acc, Oct], Value),
+    Value >= 9,
+    Value =< 96.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % New predicates for interval calculation
@@ -291,9 +284,11 @@ interval_name(22, 'augmented thirteenth'). % octave (12) + minor seventh (10) au
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Scale definitions
 
-% For our purposes the diatonic (major or natural minor) scale is defined by its set of intervals (in semitones from the root).
+% Scale modes are specified by semitone offsets above the tonic.
+% Add further modes here and specify their leading-tone policy below.
 scale_degrees(major, [0,2,4,5,7,9,11]).
 scale_degrees(minor, [0,2,3,5,7,8,10]).
+scale_degrees(dorian, [0,2,3,5,7,9,10]).
 
 % in_scale(+Note, +Root, +ScaleType)
 % Succeeds if the note’s pitch (mod 12) relative to the Root
@@ -319,22 +314,26 @@ candidate_note(Root, ScaleType, Note) :-
     NV =< RV + 16.  % and up to a tenth (about 16 semitones) above
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Canonical note mapping
-%
-% Maps a note to its canonical representation.
-%
-% [c,-1,Oct]  (C flat)       -> [b,0,Oct-1]
-% [e,1,Oct]   (E sharp)       -> [f,0,Oct]
-% [f,-1,Oct]  (F flat)        -> [e,0,Oct]
-% [b,1,Oct]   (B sharp)       -> [c,0,Oct+1]
-%
-canonical_note([c, -1, Oct], [b, 0, Oct1]) :-
-    Oct1 is Oct - 1, !.
-canonical_note([e, 1, Oct], [f, 0, Oct]) :- !.
-canonical_note([f, -1, Oct], [e, 0, Oct]) :- !.
-canonical_note([b, 1, Oct], [c, 0, Oct1]) :-
-    Oct1 is Oct + 1, !.
-canonical_note(Note, Note).
+% Canonical sounding pitch spelling: naturals and sharps. Enharmonic notes
+% map to the same triple, including spellings across octave boundaries.
+canonical_note(Note, [Name, Acc, Oct]) :-
+    note_value(Note, Value),
+    Oct is Value div 12,
+    PitchClass is Value mod 12,
+    canonical_pitch_class(PitchClass, Name, Acc).
+
+canonical_pitch_class(0, c, 0).
+canonical_pitch_class(1, c, 1).
+canonical_pitch_class(2, d, 0).
+canonical_pitch_class(3, d, 1).
+canonical_pitch_class(4, e, 0).
+canonical_pitch_class(5, f, 0).
+canonical_pitch_class(6, f, 1).
+canonical_pitch_class(7, g, 0).
+canonical_pitch_class(8, g, 1).
+canonical_pitch_class(9, a, 0).
+canonical_pitch_class(10, a, 1).
+canonical_pitch_class(11, b, 0).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Updated phrase_notes/3 to apply canonical mapping
@@ -348,15 +347,15 @@ canonical_note(Note, Note).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phrase_notes([], _, _).
 phrase_notes([N|Ns], Root, ScaleType) :-
-    candidate_note(Root, ScaleType, Temp),
-    canonical_note(Temp, N),
+    distinct(N, (candidate_note(Root, ScaleType, Temp),
+                 canonical_note(Temp, N))),
     phrase_notes(Ns, Root, ScaleType).
 
 % phrase_length(-Phrase)
 % Nondeterministically chooses a phrase (list) length between 8 and 12.
 phrase_length(Phrase) :-
-    between(8, 12, _),  % used only for backtracking on length
-    length(Phrase, _).
+    between(8, 12, Length),
+    length(Phrase, Length).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Checks on the complete phrase
@@ -369,6 +368,12 @@ range_within(Phrase) :-
     max_list(Vs, Max),
     Range is Max - Min,
     Range =< 16.
+
+% Isometric lines have a narrower range than the counterpoint voices.
+isometric_range_within(Phrase) :-
+    maplist(note_value, Phrase, Values),
+    min_list(Values, Min), max_list(Values, Max),
+    Max - Min =< 12.
 
 % last_preceded_by_second(+Phrase)
 % The penultimate note must be only a second (1 or 2 semitones) away from the last.
@@ -410,6 +415,19 @@ check_leaps([A, B, C | Rest]) :-
     ),
     check_leaps([B, C | Rest]).
 
+% Isometric fourths may continue by an opposite third as well as by step.
+% The original text permits this at structural tones; until those tones can be
+% identified, this is a limited approximation for fourths only.
+check_isometric_leaps([_,_]).
+check_isometric_leaps([A,B,C|Rest]) :-
+    note_value(A, X), note_value(B, Y), note_value(C, Z),
+    Leap is Y-X, Next is Z-Y,
+    ( abs(Leap) > 4 ->
+        Leap*Next < 0,
+        ( abs(Next) =< 2 ; abs(Leap) =:= 5, AbsNext is abs(Next), memberchk(AbsNext, [3,4]) )
+    ; true ),
+    check_isometric_leaps([B,C|Rest]).
+
 % check_sixths(+Phrase)
 %
 % For any two consecutive notes A and B, if the interval between them
@@ -438,10 +456,10 @@ check_sixths([A,B|Rest]) :-
 % Generates a phrase (a list of 8–12 notes) such that:
 %   - Every note is valid and belongs to the given ScaleType with Root.
 %   - The phrase begins and ends with Root.
-%   - The overall range (lowest to highest) is ≤ a 10th (16 semitones).
+%   - The overall range (lowest to highest) is at most an octave.
 %   - The last note is reached by a step (second) from its predecessor.
 %   - There is only one highest note.
-%   - Any leap of more than a third is immediately followed by a step in the opposite direction.
+%   - Leaps larger than a third have contrary recovery; fourths may resolve by a third.
 %   - Any upward sixth is minor (8 semitones), never major (9 semitones).
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -531,6 +549,23 @@ check_consecutive_thirds([A, B, C | Rest]) :-
     check_consecutive_thirds([B, C | Rest]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Three consecutive distinct pitch classes forming a major, minor,
+% diminished or augmented triad are a broken chord in any ordering.
+check_isometric_broken_triads([]).
+check_isometric_broken_triads([_]).
+check_isometric_broken_triads([_,_]).
+check_isometric_broken_triads([A,B,C|Rest]) :-
+    \+ isometric_triad(A,B,C),
+    check_isometric_broken_triads([B,C|Rest]).
+isometric_triad(A,B,C) :-
+    maplist(note_value, [A,B,C], Values),
+    maplist(isometric_pitch_class, Values, Classes0), sort(Classes0, Classes),
+    Classes = [_,_,_], member(Root,Classes),
+    findall(D,(member(P,Classes), D is (P-Root) mod 12), Offsets0),
+    sort(Offsets0,Offsets),
+    memberchk(Offsets, [[0,3,6],[0,3,7],[0,4,7],[0,4,8]]), !.
+isometric_pitch_class(Value, PC) :- PC is Value mod 12.
+
 % check_repeated_two_note_patterns(+Phrase)
 %
 % Fails if two immediately successive two-note patterns (non-overlapping) are identical.
@@ -539,6 +574,8 @@ check_consecutive_thirds([A, B, C | Rest]) :-
 % then the phrase is rejected.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 check_repeated_two_note_patterns([]).
+check_repeated_two_note_patterns([_]).
+check_repeated_two_note_patterns([_,_]).
 check_repeated_two_note_patterns([_,_,_]).  % fewer than 4 notes: nothing to check.
 check_repeated_two_note_patterns([A, B, C, D | Rest]) :-
     canonical_note(A, CA),
@@ -551,53 +588,45 @@ check_repeated_two_note_patterns([A, B, C, D | Rest]) :-
     check_repeated_two_note_patterns([B, C, D | Rest]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% check_leading_tone_rule(+Phrase, +Root)
-%
-% For the given Root note, compute its pitch class.
-% Then, for every occurrence in the Phrase of a note whose canonical pitch class
-% equals (Root’s pitch class – 1) mod 12 (i.e. the leading tone),
-% ensure that the interval from the previous note to that note is a step (1 or 2 semitones).
-% If not, then the only acceptable case is if the three–note sequence (Prev, LT, Next)
-% is the exception: an upward sequence whose canonical forms are [g,0,_], [b,0,_], [c,0,_].
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% In major, the leading tone must be approached by step, except for an
+% ascending dominant–leading-tone–tonic figure in any key. Natural minor has
+% a subtonic rather than a leading tone, as does Dorian, so this rule does not
+% apply to those modes.
+% The two-argument form retains its original major-scale interpretation.
 check_leading_tone_rule(Phrase, Root) :-
+    check_leading_tone_rule(Phrase, Root, major).
+
+scale_leading_tone_policy(major, present).
+scale_leading_tone_policy(minor, absent).
+scale_leading_tone_policy(dorian, absent).
+
+check_leading_tone_rule(Phrase, Root, Scale) :-
+    scale_leading_tone_policy(Scale, Policy),
+    check_scale_leading_tone(Policy, Phrase, Root).
+
+check_scale_leading_tone(absent, _, _).
+check_scale_leading_tone(present, Phrase, Root) :-
     note_value(Root, RootVal),
-    RootPC is RootVal mod 12,
-    % The leading tone’s pitch class is one less than Root’s (modulo 12).
-    LeadingPC is (RootPC + 11) mod 12,
+    LeadingPC is (RootVal + 11) mod 12,
     check_leading_tone_rule_aux(Phrase, LeadingPC).
 
-% Auxiliary predicate that scans the phrase three notes at a time.
 check_leading_tone_rule_aux([], _).
 check_leading_tone_rule_aux([_], _).
-check_leading_tone_rule_aux([_X, _Y], _).
+check_leading_tone_rule_aux([_, _], _).
 check_leading_tone_rule_aux([Prev, LT, Next | Rest], LeadingPC) :-
-    canonical_note(LT, CLT),
-    note_value(CLT, LTVal),
-    ( (LTVal mod 12) =:= LeadingPC ->
-         % LT is a leading tone. Compute the interval from Prev to LT.
-         canonical_note(Prev, CPrev),
-         note_value(CPrev, PrevVal),
-         Diff is LTVal - PrevVal,
-         ( (abs(Diff) =:= 1 ; abs(Diff) =:= 2)
-           -> true  % Reached by a step: OK.
-           ;  % Otherwise, allow only if the triple is the exception.
-              canonical_note(Prev, CP),
-              canonical_note(LT, CB),
-              canonical_note(Next, CC),
-              % Check that CP, CB, and CC (ignoring octave) are g, b, and c, respectively.
-              CP = [g, 0, _],
-              CB = [b, 0, _],
-              CC = [c, 0, _],
-              note_value(CP, PV),
-              note_value(CB, BV),
-              note_value(CC, CV),
-              PV < BV, BV < CV
-         )
-      ; true
+    note_value(LT, LTVal),
+    ( LTVal mod 12 =:= LeadingPC ->
+        note_value(Prev, PrevVal),
+        Diff is LTVal - PrevVal,
+        ( memberchk(Diff, [-2, -1, 1, 2]) -> true
+        ; note_value(Next, NextVal),
+          PrevVal mod 12 =:= (LeadingPC + 8) mod 12,
+          NextVal mod 12 =:= (LeadingPC + 1) mod 12,
+          PrevVal < LTVal, LTVal < NextVal
+        )
+    ; true
     ),
     check_leading_tone_rule_aux([LT, Next | Rest], LeadingPC).
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Updated isometric_phrase/3 with the new interval rules added.
@@ -607,19 +636,21 @@ check_leading_tone_rule_aux([Prev, LT, Next | Rest], LeadingPC) :-
 % Generates a phrase (a list of 8–12 notes) that satisfies all constraints:
 %   - Valid notes in the specified scale with the given Root.
 %   - Begins and ends with Root.
-%   - Overall range ≤ a 10th (16 semitones).
+%   - Overall range is at most an octave.
 %   - The last note is reached by a step (second) from its predecessor.
 %   - Exactly one highest note.
-%   - Any leap of more than a third is immediately followed by a step in the opposite direction.
+%   - Leaps larger than a third have contrary recovery; fourths may resolve by a third.
 %   - Any upward sixth is minor (8 semitones), never major (9 semitones).
 %   - No two successive notes are equivalent (when compared canonically).
 %   - No two consecutive notes form a seventh (10 or 11 semitones apart).
 %   - No consecutive notes form an interval larger than an octave.
 %   - No two consecutive notes form a tritone (6 semitones).
-%   - No two successive interval skips are both thirds.
+%   - Three consecutive notes must not outline a triad.
 %   - No immediately repeated two-note patterns.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 isometric_phrase(ScaleType, Root, Phrase) :-
+    is_note(Root),
+    scale_degrees(ScaleType, _),
     % Choose a phrase length between 8 and 12.
     between(8, 12, L),
     length(Phrase, L),
@@ -629,18 +660,18 @@ isometric_phrase(ScaleType, Root, Phrase) :-
     % Generate the intermediate notes from candidates in the scale (with canonical mapping).
     phrase_notes(Middle0, Root, ScaleType),
     % Check the overall constraints.
-    range_within(Phrase),
+    isometric_range_within(Phrase),
     last_preceded_by_second(Phrase),
     single_highest(Phrase),
-    check_leaps(Phrase),
+    check_isometric_leaps(Phrase),
     check_sixths(Phrase),
     no_consecutive_repeats(Phrase),
     no_sevenths(Phrase),
     no_interval_exceeds_octave(Phrase),
     check_tritones(Phrase),
-    check_consecutive_thirds(Phrase),
+    check_isometric_broken_triads(Phrase),
     check_repeated_two_note_patterns(Phrase),
-    check_leading_tone_rule(Phrase, Root).
+    check_leading_tone_rule(Phrase, Root, ScaleType).
 
 % (Optionally, if you use a global variable for storing generated phrases, you
 % might have a directive like the following at the top of your file.)
@@ -698,18 +729,18 @@ isometric_phrase_constrained(ScaleType, Root, Second, SecondToLast, Phrase) :-
     append([Root, Second], Middle, Temp1),
     append(Temp1, [SecondToLast, Root], Phrase),
     % Now enforce all the overall constraints.
-    range_within(Phrase),
+    isometric_range_within(Phrase),
     last_preceded_by_second(Phrase),
     single_highest(Phrase),
-    check_leaps(Phrase),
+    check_isometric_leaps(Phrase),
     check_sixths(Phrase),
     no_consecutive_repeats(Phrase),
     no_sevenths(Phrase),
     no_interval_exceeds_octave(Phrase),
     check_tritones(Phrase),
-    check_consecutive_thirds(Phrase),
+    check_isometric_broken_triads(Phrase),
     check_repeated_two_note_patterns(Phrase),
-    check_leading_tone_rule(Phrase, Root).
+    check_leading_tone_rule(Phrase, Root, ScaleType).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % isometric_phrase_constrained(+ScaleType, +Root, +Second, +SecondToLast, -Phrase, -History)
@@ -742,6 +773,43 @@ isometric_phrase_constrained(ScaleType, Root, Second, SecondToLast, Phrase, Hist
     nb_setval(generated_phrases, NewHistory),
     History = NewHistory.
 
+% choosenisosols(+Count, +CandidateLimit, +Scale, +Root, +Filename)
+% Randomly sample without replacement from the first CandidateLimit solutions.
+% Fail without opening the output file if fewer than Count solutions exist.
+choosenisosols(Count, CandidateLimit, Scale, Root, Filename) :-
+    must_be(positive_integer, Count),
+    must_be(positive_integer, CandidateLimit),
+    Count =< CandidateLimit,
+    nonvar(Scale), scale_degrees(Scale, _),
+    ground(Root), is_note(Root),
+    get_time(Start),
+    format(user_error, 'Searching for up to ~d candidate lines...~n', [CandidateLimit]),
+    findnsols(CandidateLimit, Line,
+              (call_nth(isometric_phrase(Scale, Root, Line), Found),
+               isometric_search_progress(Found, CandidateLimit, Start)), Candidates),
+    length(Candidates, FoundTotal), get_time(Finish), Elapsed is max(0.0, Finish-Start),
+    format(user_error, 'Found ~d candidate lines in ~1f seconds.~n', [FoundTotal, Elapsed]),
+    choose_isometric_candidates(Count, Candidates, Selected),
+    once(write_musicxml(Selected, Filename)).
+
+% Report the average-rate projection approximately ten times per search.
+% This cannot predict a change in search difficulty or an early exhaustion.
+isometric_search_progress(Found, Limit, Start) :-
+    ReportEvery is max(1, (Limit+9) // 10),
+    ( Found =:= 1 ; Found =:= Limit ; 0 is Found mod ReportEvery ), !,
+    get_time(Now), Elapsed is max(0.0, Now-Start),
+    Remaining is Elapsed * (Limit-Found) / Found,
+    format(user_error,
+           'Candidates ~d/~d; elapsed ~1f s; estimated remaining ~1f s (rough).~n',
+           [Found, Limit, Elapsed, Remaining]),
+    flush_output(user_error).
+isometric_search_progress(_, _, _).
+
+choose_isometric_candidates(Count, Candidates, Selected) :-
+    length(Candidates, Available), Available >= Count,
+    random_permutation(Candidates, Shuffled),
+    length(Selected, Count), append(Selected, _, Shuffled).
+
 gen_phrases(midi,Num):-  findnsols(Num, Phrase, isometric_phrase_constrained(major, [c,0,4], [d,0,4], [b,0,3], Phrase), Phrases),  
                     write_midi_phrases(Phrases, 'combined_output.mid').
 
@@ -763,4 +831,142 @@ gen_phrases(xml,Num,Root,Second,SecondToLast,History):-
         findnsols(Num, Phrase,  
             isometric_phrase_constrained(major, Root, Second, SecondToLast, Phrase, History), Phrases),  
         write_musicxml(Phrases, Filename, Title, SubTitle).
-    
+
+:- ensure_loaded(counterpoint).
+
+% Write two equal-length voices as simultaneous tracks (SMF format 1).
+% The voices occupy different MIDI channels so shared pitches remain independent.
+write_counterpoint_midi(Upper, Lower, Filename) :-
+    write_counterpoint_midi(Upper, Lower, Filename, whole).
+
+write_counterpoint_midi(Upper, Lower, Filename, Duration) :-
+    counterpoint_midi_bytes(Upper, Lower, Duration, Bytes),
+    setup_call_cleanup(open(Filename, write, Stream, [type(binary)]),
+                       maplist(put_byte(Stream), Bytes), close(Stream)).
+
+counterpoint_midi_bytes(Upper, Lower, Duration, Bytes) :-
+    same_length(Upper, Lower), Upper = [_|_],
+    maplist(is_note, Upper), maplist(is_note, Lower),
+    note_duration_value(Duration, _),
+    counterpoint_track(Upper, Duration, 0, Track1),
+    counterpoint_track(Lower, Duration, 1, Track2),
+    append([[77,84,104,100,0,0,0,6,0,1,0,2,1,224], Track1, Track2], Bytes).
+
+counterpoint_track(Notes, Duration, Channel, Track) :-
+    maplist(counterpoint_note_events(Duration, Channel), Notes, Lists),
+    append(Lists, Events), append(Events, [0,255,47,0], Data),
+    length(Data, Length), track_length_bytes(Length, LengthBytes),
+    append([[77,84,114,107], LengthBytes, Data], Track).
+
+counterpoint_note_events(Duration, Channel, Note, Events) :-
+    note_to_midi(Note, Midi), note_duration_value(Duration, Ticks),
+    encode_vlq(Ticks, Delta), On is 144+Channel, Off is 128+Channel,
+    append([[0,On,Midi,64], Delta, [Off,Midi,64]], Events).
+
+% Second-species output: cantus whole notes against pairs of half notes,
+% with a final whole note in both tracks. Both tracks start at time zero.
+write_second_species_midi(Cantus, Counterpoint, Filename) :-
+    second_species_midi_bytes(Cantus, Counterpoint, Bytes),
+    setup_call_cleanup(open(Filename, write, Stream, [type(binary)]),
+                       maplist(put_byte(Stream), Bytes), close(Stream)).
+
+second_species_midi_bytes(Cantus, Counterpoint, Bytes) :-
+    is_list(Cantus), Cantus = [_|_], is_list(Counterpoint),
+    length(Cantus, N), length(Counterpoint, M), M =:= 2*N-1,
+    maplist(is_note, Cantus), maplist(is_note, Counterpoint),
+    counterpoint_track(Cantus, whole, 0, CantusTrack),
+    append(HalfNotes, [Final], Counterpoint),
+    maplist(counterpoint_note_events(half, 1), HalfNotes, HalfEvents),
+    counterpoint_note_events(whole, 1, Final, FinalEvents),
+    append(HalfEvents, HalfBytes), append([HalfBytes, FinalEvents, [0,255,47,0]], Data),
+    length(Data, Length), track_length_bytes(Length, LengthBytes),
+    append([[77,84,104,100,0,0,0,6,0,1,0,2,1,224], CantusTrack,
+            [77,84,114,107], LengthBytes, Data], Bytes).
+
+% Third species: quarter notes against whole notes, with a shared whole-note
+% ending. Both independent MIDI tracks begin at time zero.
+write_third_species_midi(Cantus, Counterpoint, Filename) :-
+    third_species_midi_bytes(Cantus, Counterpoint, Bytes),
+    setup_call_cleanup(open(Filename, write, Stream, [type(binary)]),
+                       maplist(put_byte(Stream), Bytes), close(Stream)).
+
+third_species_midi_bytes(Cantus, Counterpoint, Bytes) :-
+    is_list(Cantus), Cantus = [_|_], is_list(Counterpoint),
+    length(Cantus, N), length(Counterpoint, M), M =:= 4*N-3,
+    maplist(is_note, Cantus), maplist(is_note, Counterpoint),
+    counterpoint_track(Cantus, whole, 0, CantusTrack),
+    append(QuarterNotes, [Final], Counterpoint),
+    maplist(counterpoint_note_events(quarter, 1), QuarterNotes, QuarterEvents),
+    counterpoint_note_events(whole, 1, Final, FinalEvents),
+    append(QuarterEvents, QuarterBytes),
+    append([QuarterBytes, FinalEvents, [0,255,47,0]], Data),
+    length(Data, Length), track_length_bytes(Length, LengthBytes),
+    append([[77,84,104,100,0,0,0,6,0,1,0,2,1,224], CantusTrack,
+            [77,84,114,107], LengthBytes, Data], Bytes).
+
+% MIDI fourth species: a half-note rest, then whole-note sounding durations
+% across barlines, an untied half note, and the final whole note.
+write_fourth_species_midi(Cantus, Measures, Filename) :-
+    fourth_species_midi_bytes(Cantus, Measures, Bytes),
+    setup_call_cleanup(open(Filename, write, Stream, [type(binary)]),
+                       maplist(put_byte(Stream), Bytes), close(Stream)).
+
+fourth_species_midi_bytes(Cantus, Measures, Bytes) :-
+    fourth_score_attacks(Cantus, Measures, Attacks),
+    maplist(is_note, Cantus), maplist(is_note, Attacks),
+    counterpoint_track(Cantus, whole, 0, CantusTrack),
+    fourth_midi_events(Measures, [rest(half)|Events]),
+    fifth_midi_events(Events, [135,64], EventBytes),
+    append(EventBytes, [0,255,47,0], Data),
+    length(Data, Length), track_length_bytes(Length, LengthBytes),
+    append([[77,84,104,100,0,0,0,6,0,1,0,2,1,224], CantusTrack,
+            [77,84,114,107], LengthBytes, Data], Bytes).
+
+% Convert fourth-species notation to timed events, retaining optional
+% untied notes at the beginning of the penultimate measure.
+fourth_midi_events([], []).
+fourth_midi_events([[rest,Weak]|Rest], [rest(half),note(Weak,half,Tie)|Events]) :-
+    fourth_midi_next_tie(Rest, Tie), fourth_midi_events(Rest, Events).
+fourth_midi_events([[tie(Held),Weak]|Rest], [note(Held,half,stop),note(Weak,half,Tie)|Events]) :-
+    fourth_midi_next_tie(Rest, Tie), fourth_midi_events(Rest, Events).
+fourth_midi_events([[Strong,Weak]|Rest], [note(Strong,half,none),note(Weak,half,none)|Events]) :-
+    is_note(Strong), is_note(Weak), fourth_midi_events(Rest, Events).
+fourth_midi_events([[Final]|Rest], [note(Final,whole,none)|Events]) :-
+    fourth_midi_events(Rest, Events).
+
+fourth_midi_next_tie([[tie(_),_]|_], start) :- !.
+fourth_midi_next_tie(_, none).
+
+% MIDI for the supported fifth-species events. Tied note fragments sound as
+% one continuous note; each quarter is 480 ticks, matching the other writers.
+write_fifth_species_midi(Cantus, Measures, Filename) :-
+    fifth_species_midi_bytes(Cantus, Measures, Bytes),
+    setup_call_cleanup(open(Filename, write, Stream, [type(binary)]),
+                       maplist(put_byte(Stream), Bytes), close(Stream)).
+
+fifth_species_midi_bytes(Cantus, Measures, Bytes) :-
+    fifth_score_attacks(Cantus, Measures, Attacks),
+    maplist(is_note, Cantus), maplist(is_note, Attacks),
+    counterpoint_track(Cantus, whole, 0, CantusTrack),
+    append(Measures, [rest(half)|Events]),
+    fifth_midi_events(Events, [135,64], EventBytes),
+    append(EventBytes, [0,255,47,0], Data),
+    length(Data, Length), track_length_bytes(Length, LengthBytes),
+    append([[77,84,104,100,0,0,0,6,0,1,0,2,1,224], CantusTrack,
+            [77,84,114,107], LengthBytes, Data], Bytes).
+
+fifth_midi_events([], _, []).
+fifth_midi_events([note(Note,Duration,start),note(Note,NextDuration,stop)|Rest], Delta, Bytes) :-
+    note_duration_value(Duration, T1), note_duration_value(NextDuration, T2),
+    Ticks is T1+T2, encode_vlq(Ticks, OffDelta),
+    note_to_midi(Note, Midi),
+    append([Delta,[145,Midi,64],OffDelta,[129,Midi,64],Tail], Bytes),
+    fifth_midi_events(Rest, [0], Tail).
+fifth_midi_events([note(Note,Duration,none)|Rest], Delta, Bytes) :-
+    note_duration_value(Duration, Ticks), encode_vlq(Ticks, OffDelta),
+    note_to_midi(Note, Midi),
+    append([Delta,[145,Midi,64],OffDelta,[129,Midi,64],Tail], Bytes),
+    fifth_midi_events(Rest, [0], Tail).
+
+
+:- ensure_loaded(diminution).
