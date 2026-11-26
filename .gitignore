@@ -10,4 +10,4 @@ book/*
 *.gz
 *.aux
 *.log
-
+*.png
